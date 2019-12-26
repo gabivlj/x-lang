@@ -40,19 +40,48 @@ func (l *Lexer) skipWhiteSpace() {
 	}
 }
 
+// Returns if there is a combination with the next char, else returns otherwise param
+func (l *Lexer) peekerForTwoChars(expect byte, otherwise token.Token, t token.TypeToken) token.Token {
+	// Peek next character
+	peek := l.peekChar()
+	// Checks if the peeked character is the expected one
+	if peek == expect {
+		// Store the current character
+		ch := l.ch
+		// Next character
+		l.readChar()
+		// Return the token for that combination
+		return token.Token{Type: t, Literal: string(ch) + string(peek)}
+	}
+	// Otherwise return the token that it falls to
+	return otherwise
+}
+
 // NextToken Returns the next token of an input
 func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
 	l.skipWhiteSpace()
 	switch l.ch {
 	case '=':
-		tok = newToken(token.ASSIGN, l.ch)
+		tok = l.peekerForTwoChars('=', newToken(token.ASSIGN, '='), token.EQ)
+	case '!':
+		tok = l.peekerForTwoChars('=', newToken(token.BANG, '!'), token.NOTEQ)
 	case ';':
 		tok = newToken(token.SEMICOLON, l.ch)
 	case '(':
 		tok = newToken(token.LPAREN, l.ch)
 	case '+':
 		tok = newToken(token.PLUS, l.ch)
+	case '-':
+		tok = newToken(token.MINUS, l.ch)
+	case '/':
+		tok = newToken(token.SLASH, l.ch)
+	case '*':
+		tok = newToken(token.ASTERISK, l.ch)
+	case '<':
+		tok = newToken(token.LT, l.ch)
+	case '>':
+		tok = newToken(token.GT, l.ch)
 	case ')':
 		tok = newToken(token.RPAREN, l.ch)
 	case ',':
@@ -86,7 +115,7 @@ func newToken(tokenType token.TypeToken, ch byte) token.Token {
 }
 
 func isDigit(ch byte) bool {
-	return '0' <= ch && ch >= '9'
+	return '0' <= ch && ch <= '9'
 }
 
 func (l *Lexer) readNumber() string {
@@ -113,26 +142,26 @@ func (l *Lexer) readChar() {
 	l.ch = l.input[l.readPosition]
 }
 
+func (l *Lexer) peekChar() byte {
+	if l.readPosition >= len(l.input) {
+		return 0
+	}
+	return l.input[l.readPosition]
+}
+
 // TestNextToken ...
 func TestNextToken() {
-	testInput := "=+(){},;"
+	input3 := `let 32`
 	tests := []struct {
 		expectedType    token.TypeToken
 		expectedLiteral string
 	}{
 
-		{token.ASSIGN, "="},
-		{token.PLUS, "+"},
-		{token.LPAREN, "("},
-		{token.RPAREN, ")"},
-		{token.LBRACE, "{"},
-		{token.RBRACE, "}"},
-		{token.COMMA, ","},
-		{token.SEMICOLON, ";"},
-		{token.EOF, ""},
+		{token.LET, "let"},
+		{token.INT, "32"},
 	}
 
-	l := New(testInput)
+	l := New(input3)
 
 	for i, tt := range tests {
 		tok := l.NextToken()

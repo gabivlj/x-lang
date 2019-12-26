@@ -22,8 +22,16 @@ const (
 
 	// Operators
 
-	COMMA = TypeToken(",")
-	PLUS  = TypeToken("+")
+	COMMA    = TypeToken(",")
+	PLUS     = TypeToken("+")
+	MINUS    = TypeToken("-")
+	BANG     = TypeToken("!")
+	ASTERISK = TypeToken("*")
+	SLASH    = TypeToken("/")
+	LT       = TypeToken("<")
+	GT       = TypeToken(">")
+	EQ       = TypeToken("==")
+	NOTEQ    = TypeToken("!=")
 
 	// Delimiters
 
@@ -40,11 +48,21 @@ const (
 
 	FUNCTION = TypeToken("FUNCTION")
 	LET      = TypeToken("LET")
+	TRUE     = TypeToken("TRUE")
+	FALSE    = TypeToken("FALSE")
+	IF       = TypeToken("IF")
+	ELSE     = TypeToken("ELSE")
+	RETURN   = TypeToken("RETURN")
 )
 
 var keywords = map[string]TypeToken{
-	"fn":  FUNCTION,
-	"let": LET,
+	"fn":     FUNCTION,
+	"let":    LET,
+	"true":   TRUE,
+	"false":  FALSE,
+	"if":     IF,
+	"else":   ELSE,
+	"return": RETURN,
 }
 
 // LookupIdent Looks up in the keywords table if its a keyword, if its not it will return IDENT as a TypeToken
