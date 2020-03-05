@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"xlang/ast"
 
 	"xlang/token"
@@ -30,11 +31,25 @@ func (p *Parser) registerInfix(tokenType token.TypeToken, fn infixParseFn) {
 	p.infixParseFns[tokenType] = fn
 }
 
+func (p *Parser) noPrefixParseFnError(t token.TypeToken) {
+	p.errors = append(p.errors, fmt.Sprintf("no prefix parse function for %s found", t))
+}
+
 func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
-	stmt := ast.ExpressionStatement{Token: p.curToken}
+	stmt := &ast.ExpressionStatement{Token: p.curToken}
 	stmt.Expression = p.parseExpression(LOWEST)
 	if p.peekTokenIs(token.SEMICOLON) {
 		p.nextToken()
 	}
 	return stmt
+}
+
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	prefix := p.prefixParseFns[p.curToken.Type]
+	if prefix == nil {
+		p.noPrefixParseFnError(p.curToken.Type)
+		return nil
+	}
+	leftExp := prefix()
+	return leftExp
 }

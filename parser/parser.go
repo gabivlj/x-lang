@@ -17,8 +17,14 @@ type Parser struct {
 	infixParseFns  map[token.TypeToken]infixParseFn
 }
 
+// New returns a new xlang parser
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{l: l, errors: []string{}}
+
+	p.prefixParseFns = make(map[token.TypeToken]prefixParseFn)
+	p.registerPrefix(token.IDENT, p.parseIdentifier)
+	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	p.infixParseFns = make(map[token.TypeToken]infixParseFn)
 
 	p.nextToken()
 	p.nextToken()
@@ -73,7 +79,7 @@ func (p *Parser) parseStatement() ast.Statement {
 			return r
 		}
 	default:
-		return nil
+		return p.parseExpressionStatement()
 	}
 }
 

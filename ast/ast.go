@@ -40,7 +40,7 @@ func (p *Program) TokenLiteral() string {
 func (p *Program) String() string {
 	var str strings.Builder = strings.Builder{}
 	for _, s := range p.Statements {
-		str.WriteString(s.String())
+		str.WriteString(s.String() + "\n")
 	}
 	return str.String()
 }
@@ -119,4 +119,39 @@ func (exst *ExpressionStatement) String() string {
 		return exst.Expression.String()
 	}
 	return ""
+}
+
+type IntegerLiteral struct {
+	Token token.Token
+	Value int64
+}
+
+func (il *IntegerLiteral) expressionNode() {}
+
+// TokenLiteral ..
+func (il *IntegerLiteral) TokenLiteral() string { return il.Token.Literal }
+
+func (il *IntegerLiteral) String() string { return il.Token.Literal }
+
+// PrefixExpression like -165 or !true
+type PrefixExpression struct {
+	Token    token.Token
+	Operator string
+	Right    Expression
+}
+
+func (pe *PrefixExpression) expressionNode() {}
+
+// TokenLiteral ..
+func (pe *PrefixExpression) TokenLiteral() string { return pe.Token.Literal }
+
+func (pe *PrefixExpression) String() string {
+	out := strings.Builder{}
+
+	out.WriteString("(")
+	out.WriteString(pe.Operator)
+	out.WriteString(pe.Right.String())
+	out.WriteString(")")
+
+	return out.String()
 }
