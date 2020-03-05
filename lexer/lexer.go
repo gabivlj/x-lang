@@ -95,7 +95,9 @@ func (l *Lexer) NextToken() token.Token {
 		tok.Type = token.EOF
 	default:
 		if isLetter(l.ch) {
+			// returns the whole identifier
 			tok.Literal = l.readIndentifier()
+			// lookup the literal in the keyword table, if it doesn't exist it's a IDENT.
 			tok.Type = token.LookupIdent(tok.Literal)
 			return tok
 		}
@@ -133,7 +135,7 @@ func (l *Lexer) readChar() {
 		// point to the next char
 		l.readPosition++
 	}()
-	// Handling possible errors
+	// EOF
 	if l.readPosition >= len(l.input) {
 		l.ch = 0
 		return
@@ -156,7 +158,6 @@ func TestNextToken() {
 		expectedType    token.TypeToken
 		expectedLiteral string
 	}{
-
 		{token.LET, "let"},
 		{token.INT, "32"},
 	}
