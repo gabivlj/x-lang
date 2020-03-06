@@ -11,11 +11,12 @@ import (
 const (
 	_ int = iota
 	LOWEST
-	EQUALS  // == LESSGREATER // > or <
-	SUM     //+
-	PRODUCT //*
-	PREFIX  //-Xor!X
-	CALL    // myFunction(X)
+	EQUALS      // ==
+	LESSGREATER // > or <
+	SUM         //+
+	PRODUCT     //*
+	PREFIX      //-Xor!X
+	CALL        // myFunction(X)
 )
 
 type (
@@ -45,11 +46,20 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 }
 
 func (p *Parser) parseExpression(precedence int) ast.Expression {
+	// Tries to find a prefix function to deal with this kind of token
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
 		p.noPrefixParseFnError(p.curToken.Type)
 		return nil
 	}
 	leftExp := prefix()
+	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
+		infix := p.infixParseFns[p.peekToken.Type]
+		if infix == nil {
+			return leftExp
+		}
+		p.nextToken()
+		leftExp = infix(leftExp)
+	}
 	return leftExp
 }
