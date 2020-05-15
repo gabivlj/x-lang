@@ -1,9 +1,11 @@
 package main
 
 import (
-	"xlang/testing"
+	"os"
+	"xlang/repl"
 )
 
 func main() {
-	testing.TestParser(`parser(x, y, z) * (6 + 3)`)
+	repl.Start(os.Stdin, os.Stdout)
+
 }

@@ -45,6 +45,8 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	return stmt
 }
 
+var loop = 0
+
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	// Tries to find a prefix function to deal with this kind of token
 	prefix := p.prefixParseFns[p.curToken.Type]
@@ -52,13 +54,14 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		p.noPrefixParseFnError(p.curToken.Type)
 		return nil
 	}
-	leftExp := prefix()
+	leftExp := prefix() // 0 < 1. (1 + right). 1 < 2  right = (1 * 2) -- left = 0 < 2. (1 * right). 2 < 1 right = 1 * right
 	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
 		infix := p.infixParseFns[p.peekToken.Type]
 		if infix == nil {
 			return leftExp
 		}
 		p.nextToken()
+		// Put token to the right.
 		leftExp = infix(leftExp)
 	}
 	return leftExp

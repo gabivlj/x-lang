@@ -66,6 +66,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 		if stmt != nil {
 			program.Statements = append(program.Statements, stmt)
 		}
+
 		p.nextToken()
 	}
 	if len(p.errors) > 0 {
@@ -111,14 +112,10 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	if !p.expectPeek(token.ASSIGN) {
 		return nil
 	}
-
-	// todo we are skipping exp. until we encounter semi colon
-	for !p.curTokenIs(token.SEMICOLON) {
+	p.nextToken()
+	stmt.Value = p.parseExpression(LOWEST)
+	if p.peekTokenIs(token.SEMICOLON) {
 		p.nextToken()
-		if p.curTokenIs(token.EOF) {
-			p.expectPeek(token.SEMICOLON)
-			return nil
-		}
 	}
 
 	return stmt
