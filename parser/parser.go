@@ -58,6 +58,9 @@ func (p *Parser) nextToken() {
 
 // ParseProgram parses statements and add them to the ast tree
 func (p *Parser) ParseProgram() *ast.Program {
+	defer func() {
+		recover()
+	}()
 	program := &ast.Program{}
 	program.Statements = []ast.Statement{}
 

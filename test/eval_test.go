@@ -21,10 +21,11 @@ func TestEvalIntegerExpression(t *testing.T) {
 	}
 }
 func testEval(input string) object.Object {
+	ev := eval.NewEval()
 	l := lexer.New(input)
 	p := parser.New(l)
 	program := p.ParseProgram()
-	return eval.Eval(program)
+	return ev.Eval(program)
 }
 func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
 	result, ok := obj.(*object.Integer)

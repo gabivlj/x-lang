@@ -27,6 +27,7 @@ func Start(in io.Reader, out io.Writer) {
 
 	Made by Gabriel Villalonga in Golang. Followed a book and made research to make an interpreter.
 	`)
+	evaluator := eval.NewEval()
 	for {
 		fmt.Printf(PROMPT)
 		scanned := scanner.Scan()
@@ -46,7 +47,7 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 		io.WriteString(out, "Built AST succesfully, running...\n")
-		evaluatedProgram := eval.Eval(program)
+		evaluatedProgram := evaluator.Eval(program)
 		if evaluatedProgram == nil {
 			continue
 		}

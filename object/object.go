@@ -14,6 +14,8 @@ const (
 	ReturnObject = "RETURN_VALUE"
 	// ErrorObject is an error in running the AST
 	ErrorObject = "ERROR"
+	// FunctionObject is a function
+	FunctionObject = "FUNCTION"
 )
 
 // Object is a xlang object.
