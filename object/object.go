@@ -10,6 +10,10 @@ const (
 	NullObject = "OBJECT"
 	// BooleanObject is the boolean type
 	BooleanObject = "BOOL"
+	// ReturnObject is the value wrapped around a return
+	ReturnObject = "RETURN_VALUE"
+	// ErrorObject is an error in running the AST
+	ErrorObject = "ERROR"
 )
 
 // Object is a xlang object.
