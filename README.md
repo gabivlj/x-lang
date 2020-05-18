@@ -6,6 +6,7 @@ For the moment it supports:
 
 - Variable declaration
 - Arrays
+- Strings
 - Integers
 - Functions
 - Passing functions as parameters
