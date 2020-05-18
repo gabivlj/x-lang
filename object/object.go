@@ -18,6 +18,11 @@ const (
 	FunctionObject = "FUNCTION"
 	// StringObject is a string representation in Xlang
 	StringObject = "STRING"
+	// BuiltinObject are things that are already implemented in the language
+	BuiltinObject        = "BUILTIN"
+	BuiltinObjectSpecial = "BUILTIN_SPECIAL"
+	// ArrayObject is the builtin array system in Xlang
+	ArrayObject = "ARRAY"
 )
 
 // Object is a xlang object.

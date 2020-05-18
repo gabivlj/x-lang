@@ -1,6 +1,8 @@
 package ast
 
 import (
+	"bytes"
+	"fmt"
 	"strings"
 	"xlang/token"
 )
@@ -303,3 +305,44 @@ func (sl *StringLiteral) TokenLiteral() string { return sl.Token.Literal }
 
 // String .
 func (sl *StringLiteral) String() string { return sl.Token.Literal }
+
+// ArrayLiteral represents an array [...]
+type ArrayLiteral struct {
+	Token    token.Token
+	Elements []Expression
+}
+
+func (al *ArrayLiteral) expressionNode() {}
+
+// TokenLiteral .
+func (al *ArrayLiteral) TokenLiteral() string { return al.Token.Literal }
+
+// String .
+func (al *ArrayLiteral) String() string {
+	var out bytes.Buffer
+	elements := []string{}
+	for _, el := range al.Elements {
+		elements = append(elements, el.String())
+	}
+	out.WriteString("[")
+	out.WriteString(strings.Join(elements, ", "))
+	out.WriteString("]")
+	return out.String()
+}
+
+// IndexExpression is left[right]
+type IndexExpression struct {
+	Token token.Token
+	Left  Expression
+	Right Expression
+}
+
+func (ie *IndexExpression) expressionNode() {}
+
+// TokenLiteral .
+func (ie *IndexExpression) TokenLiteral() string { return ie.Token.Literal }
+
+// String .
+func (ie *IndexExpression) String() string {
+	return fmt.Sprintf("(%s[%s])", ie.Left.String(), ie.Right.String())
+}

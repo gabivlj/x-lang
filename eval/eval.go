@@ -36,6 +36,27 @@ func ExtendEval(env *object.Environment) *Evaluator {
 // Eval evals an ast node.
 func (e *Evaluator) Eval(node ast.Node) object.Object {
 	switch node := node.(type) {
+	case *ast.IndexExpression:
+		{
+			left := e.Eval(node.Left)
+			if object.IsError(left) {
+				return left
+			}
+			right := e.Eval(node.Right)
+			if object.IsError(right) {
+				return right
+			}
+			return e.evaluateIndex(left, right)
+		}
+	case *ast.ArrayLiteral:
+		{
+			elements := e.evalExpressions(node.Elements)
+			if len(elements) == 1 && object.IsError(elements[0]) {
+				return elements[0]
+			}
+			return &object.Array{Elements: elements}
+		}
+
 	case *ast.StringLiteral:
 		{
 			return &object.String{Value: node.Value}
@@ -131,7 +152,11 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 func (e *Evaluator) applyFunction(fn object.Object, params []object.Object) object.Object {
 	function, ok := fn.(*object.Function)
 	if !ok {
-		return object.NewError("Expected function, got %s instead", fn.Type())
+		builtin, ok := fn.(*object.Builtin)
+		if !ok {
+			return object.NewError("Expected function, got %s instead", fn.Type())
+		}
+		return builtin.Fn(params...)
 	}
 
 	if len(params) != len(function.Parameters) {
@@ -146,6 +171,27 @@ func (e *Evaluator) applyFunction(fn object.Object, params []object.Object) obje
 		return returnValue
 	}
 	return tryUnwrapReturnValue
+}
+
+func (e *Evaluator) evaluateIndex(left object.Object, right object.Object) object.Object {
+	switch obj := left.(type) {
+	case *object.Array:
+		{
+			return e.evaluateArrayIndex(obj, right)
+		}
+	}
+	return object.NewError("Unsupported index operation on type: %s", left.Type())
+}
+
+func (e *Evaluator) evaluateArrayIndex(array *object.Array, right object.Object) object.Object {
+	idx, ok := right.(*object.Integer)
+	if !ok {
+		return object.NewError("Unsupported index on array of type: ", right.Type())
+	}
+	if int(idx.Value) >= len(array.Elements) || int(idx.Value) < 0 {
+		return object.NewError("Array out of bounds, array size: %d, passed index: %d", len(array.Elements), idx.Value)
+	}
+	return array.Elements[idx.Value]
 }
 
 func (e *Evaluator) newEnvironmentForFunction(fn *object.Function, params []object.Object) *object.Environment {
@@ -173,6 +219,10 @@ func (e *Evaluator) evalExpressions(exps []ast.Expression) []object.Object {
 func (e *Evaluator) evalIdentifier(node *ast.Identifier) object.Object {
 	val, ok := e.env.Get(node.Value)
 	if !ok {
+		if builtin, ok := builtins[node.Value]; ok {
+			return builtin
+		}
+
 		// TODO: Maybe tell the user the most close variable?
 		return object.NewError("Unknown variable %s", node.Value)
 	}

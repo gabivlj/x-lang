@@ -54,7 +54,9 @@ const (
 	ELSE     = TypeToken("ELSE")
 	RETURN   = TypeToken("RETURN")
 
-	STRING = TypeToken("STRING")
+	STRING   = TypeToken("STRING")
+	LBRACKET = TypeToken("[")
+	RBRACKET = TypeToken("]")
 )
 
 var keywords = map[string]TypeToken{

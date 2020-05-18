@@ -17,6 +17,7 @@ const (
 	PRODUCT     //*
 	PREFIX      //-Xor!X
 	CALL        // myFunction(X)
+	INDEX       // []
 )
 
 type (

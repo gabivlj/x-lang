@@ -28,6 +28,7 @@ func Start(in io.Reader, out io.Writer) {
 	Made by Gabriel Villalonga in Golang. Followed a book and made research to make an interpreter.
 	`)
 	evaluator := eval.NewEval()
+	AddToStandardFunctions(evaluator)
 	for {
 		fmt.Printf(PROMPT)
 		scanned := scanner.Scan()
@@ -54,4 +55,24 @@ func Start(in io.Reader, out io.Writer) {
 		io.WriteString(out, evaluatedProgram.Inspect())
 		io.WriteString(out, "\n")
 	}
+}
+
+const standardLibrary = `
+let reduce = fn(arr, initial, f) {
+	 let iter = fn(arr, result) {
+		  if (len(arr) == 0) {
+				 return result 
+			}
+			iter(shift(arr), f(result, first(arr)));
+		}
+	 iter(arr, initial) 
+}
+`
+
+// AddToStandardFunctions adds util functions into the language
+func AddToStandardFunctions(ev *eval.Evaluator) {
+	l := lexer.New(standardLibrary)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	ev.Eval(program)
 }
