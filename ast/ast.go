@@ -289,3 +289,17 @@ func (ce *CallExpression) String() string {
 	out.WriteByte(')')
 	return out.String()
 }
+
+// StringLiteral represents a string
+type StringLiteral struct {
+	Value string
+	Token token.Token
+}
+
+func (sl *StringLiteral) expressionNode() {}
+
+// TokenLiteral .
+func (sl *StringLiteral) TokenLiteral() string { return sl.Token.Literal }
+
+// String .
+func (sl *StringLiteral) String() string { return sl.Token.Literal }

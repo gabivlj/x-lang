@@ -53,6 +53,8 @@ const (
 	IF       = TypeToken("IF")
 	ELSE     = TypeToken("ELSE")
 	RETURN   = TypeToken("RETURN")
+
+	STRING = TypeToken("STRING")
 )
 
 var keywords = map[string]TypeToken{

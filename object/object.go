@@ -16,6 +16,8 @@ const (
 	ErrorObject = "ERROR"
 	// FunctionObject is a function
 	FunctionObject = "FUNCTION"
+	// StringObject is a string representation in Xlang
+	StringObject = "STRING"
 )
 
 // Object is a xlang object.

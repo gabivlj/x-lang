@@ -36,6 +36,11 @@ func ExtendEval(env *object.Environment) *Evaluator {
 // Eval evals an ast node.
 func (e *Evaluator) Eval(node ast.Node) object.Object {
 	switch node := node.(type) {
+	case *ast.StringLiteral:
+		{
+			return &object.String{Value: node.Value}
+		}
+
 	case *ast.CallExpression:
 		{
 			function := e.Eval(node.Function)
@@ -215,12 +220,26 @@ func (e *Evaluator) evalBlockStatement(block *ast.BlockStatement) object.Object 
 	return result
 }
 
+func (e *Evaluator) evalStringExpression(left *object.String, right *object.String, operator string) object.Object {
+	switch operator {
+	case "+":
+		return &object.String{Value: left.Value + right.Value}
+	case "==":
+		return booleanToObject(left.Value == right.Value)
+	}
+	return object.NewError("Error, unknown operator for strings '%s'", operator)
+}
+
 func (e *Evaluator) evalInfixExpression(left object.Object, right object.Object, operator string) object.Object {
 
 	switch {
 	case left.Type() != right.Type():
 		{
 			return object.NewError("Type mismatch: %s %s %s", left.Type(), operator, right.Type())
+		}
+	case left.Type() == object.StringObject:
+		{
+			return e.evalStringExpression(left.(*object.String), right.(*object.String), operator)
 		}
 	case left.Type() == object.IntegerObject:
 		{

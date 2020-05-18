@@ -62,6 +62,9 @@ func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
 	l.skipWhiteSpace()
 	switch l.ch {
+	case '"':
+		tok.Type = token.STRING
+		tok.Literal = l.readString()
 	case '=':
 		tok = l.peekerForTwoChars('=', newToken(token.ASSIGN, '='), token.EQ)
 	case '!':
@@ -110,6 +113,16 @@ func (l *Lexer) NextToken() token.Token {
 	}
 	l.readChar()
 	return tok
+}
+
+func (l *Lexer) readString() string {
+	s := ""
+	l.readChar()
+	for l.ch != '"' && l.ch != 0 {
+		s += string(l.ch)
+		l.readChar()
+	}
+	return s
 }
 
 func newToken(tokenType token.TypeToken, ch byte) token.Token {
