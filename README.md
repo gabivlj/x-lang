@@ -15,3 +15,5 @@ For the moment it supports:
 
 - An online editor which lets you execute code
 - HashMaps
+
+THIS IS ONLY FOR LEARNING PURPOSES. It isn't supposed to go in production or anything like that.
