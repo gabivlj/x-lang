@@ -12,11 +12,12 @@ type Lexer struct {
 	position     int  // current position
 	readPosition int  // next position after current char
 	ch           byte // current char
+	Line         uint64
 }
 
 // New Returns a new Lexer
 func New(input string) *Lexer {
-	l := &Lexer{input: input}
+	l := &Lexer{input: input, Line: 1}
 	// Initialize to first char.
 	l.readChar()
 	return l
@@ -35,7 +36,11 @@ func isLetter(ch byte) bool {
 }
 
 func (l *Lexer) skipWhiteSpace() {
-	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
+
+	for l.ch == ' ' || l.ch == '\t' || l.ch == '\r' || l.ch == '\n' {
+		if l.ch == '\n' {
+			l.Line++
+		}
 		l.readChar()
 	}
 }
@@ -62,6 +67,8 @@ func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
 	l.skipWhiteSpace()
 	switch l.ch {
+	// case '\n':
+	// 	tok = newToken(token.JUMP, l.ch)
 	case '[':
 		tok = newToken(token.LBRACKET, l.ch)
 	case ']':
@@ -116,6 +123,7 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.ILLEGAL, l.ch)
 	}
 	l.readChar()
+
 	return tok
 }
 

@@ -7,6 +7,7 @@ type TypeToken string
 type Token struct {
 	Type    TypeToken
 	Literal string
+	Line    uint64
 }
 
 const (
@@ -57,6 +58,7 @@ const (
 	STRING   = TypeToken("STRING")
 	LBRACKET = TypeToken("[")
 	RBRACKET = TypeToken("]")
+	JUMP     = TypeToken("\n")
 )
 
 var keywords = map[string]TypeToken{

@@ -11,6 +11,8 @@ import (
 type Node interface {
 	TokenLiteral() string
 	String() string
+	SetLine(uint64)
+	Line() uint64
 }
 
 // Statement ...
@@ -28,6 +30,7 @@ type Expression interface {
 // Program is the root node of every AST
 type Program struct {
 	Statements []Statement
+	line       uint64
 }
 
 // TokenLiteral Root
@@ -36,6 +39,16 @@ func (p *Program) TokenLiteral() string {
 		return p.Statements[0].TokenLiteral()
 	}
 	return ""
+}
+
+// SetLine .
+func (p *Program) SetLine(s uint64) {
+	p.line = s
+}
+
+// Line .
+func (p *Program) Line() uint64 {
+	return p.line
 }
 
 // String returns the program as a strings
@@ -53,6 +66,16 @@ type Identifier struct {
 	Value string      // value
 }
 
+// SetLine .
+func (i *Identifier) SetLine(s uint64) {
+	i.Token.Line = s
+}
+
+// Line .
+func (i *Identifier) Line() uint64 {
+	return i.Token.Line
+}
+
 func (i *Identifier) expressionNode() {}
 
 // TokenLiteral .
@@ -65,6 +88,16 @@ type LetStatement struct {
 	Token token.Token // let
 	Name  *Identifier // name
 	Value Expression  // exp
+}
+
+// SetLine .
+func (ls *LetStatement) SetLine(s uint64) {
+	ls.Token.Line = s
+}
+
+// Line .
+func (ls *LetStatement) Line() uint64 {
+	return ls.Token.Line
 }
 
 func (ls *LetStatement) statementNode() {}
@@ -90,6 +123,16 @@ type ReturnStatement struct {
 	ReturnValue Expression  // what is returning
 }
 
+// SetLine .
+func (rs *ReturnStatement) SetLine(s uint64) {
+	rs.Token.Line = s
+}
+
+// Line .
+func (rs *ReturnStatement) Line() uint64 {
+	return rs.Token.Line
+}
+
 func (rs *ReturnStatement) statementNode() {}
 
 // TokenLiteral .
@@ -111,6 +154,16 @@ type ExpressionStatement struct {
 	Expression Expression
 }
 
+// SetLine .
+func (exst *ExpressionStatement) SetLine(s uint64) {
+	exst.Token.Line = s
+}
+
+// Line .
+func (exst *ExpressionStatement) Line() uint64 {
+	return exst.Token.Line
+}
+
 func (exst *ExpressionStatement) statementNode() {}
 
 // TokenLiteral .
@@ -129,6 +182,16 @@ type IntegerLiteral struct {
 	Value int64
 }
 
+// SetLine .
+func (il *IntegerLiteral) SetLine(s uint64) {
+	il.Token.Line = s
+}
+
+// Line .
+func (il *IntegerLiteral) Line() uint64 {
+	return il.Token.Line
+}
+
 func (il *IntegerLiteral) expressionNode() {}
 
 // TokenLiteral ..
@@ -141,6 +204,16 @@ type PrefixExpression struct {
 	Token    token.Token
 	Operator string
 	Right    Expression
+}
+
+// SetLine .
+func (pe *PrefixExpression) SetLine(s uint64) {
+	pe.Token.Line = s
+}
+
+// Line .
+func (pe *PrefixExpression) Line() uint64 {
+	return pe.Token.Line
 }
 
 func (pe *PrefixExpression) expressionNode() {}
@@ -167,6 +240,16 @@ type InfixExpression struct {
 	Right    Expression
 }
 
+// SetLine .
+func (ie *InfixExpression) SetLine(s uint64) {
+	ie.Token.Line = s
+}
+
+// Line .
+func (ie *InfixExpression) Line() uint64 {
+	return ie.Token.Line
+}
+
 func (ie *InfixExpression) String() string {
 	out := strings.Builder{}
 	out.WriteString("(")
@@ -188,6 +271,16 @@ type Boolean struct {
 	Value bool
 }
 
+// SetLine .
+func (b *Boolean) SetLine(s uint64) {
+	b.Token.Line = s
+}
+
+// Line .
+func (b *Boolean) Line() uint64 {
+	return b.Token.Line
+}
+
 func (b *Boolean) expressionNode() {}
 
 // TokenLiteral is the literal string of the boolean
@@ -198,6 +291,16 @@ func (b *Boolean) String() string       { return b.Token.Literal }
 type BlockStatement struct {
 	Token      token.Token
 	Statements []Statement
+}
+
+// SetLine .
+func (bs *BlockStatement) SetLine(s uint64) {
+	bs.Token.Line = s
+}
+
+// Line .
+func (bs *BlockStatement) Line() uint64 {
+	return bs.Token.Line
 }
 
 func (bs *BlockStatement) statementNode() {}
@@ -218,6 +321,16 @@ type IfExpression struct {
 	Condition   Expression
 	Consequence *BlockStatement
 	Alternative *BlockStatement
+}
+
+// SetLine .
+func (ie *IfExpression) SetLine(s uint64) {
+	ie.Token.Line = s
+}
+
+// Line .
+func (ie *IfExpression) Line() uint64 {
+	return ie.Token.Line
 }
 
 func (ie *IfExpression) expressionNode() {}
@@ -248,6 +361,16 @@ type FunctionLiteral struct {
 	Body       *BlockStatement
 }
 
+// SetLine .
+func (fl *FunctionLiteral) SetLine(s uint64) {
+	fl.Token.Line = s
+}
+
+// Line .
+func (fl *FunctionLiteral) Line() uint64 {
+	return fl.Token.Line
+}
+
 func (fl *FunctionLiteral) expressionNode() {}
 
 // TokenLiteral returns token literal
@@ -274,6 +397,16 @@ type CallExpression struct {
 	Arguments []Expression
 }
 
+// SetLine .
+func (ce *CallExpression) SetLine(s uint64) {
+	ce.Token.Line = s
+}
+
+// Line .
+func (ce *CallExpression) Line() uint64 {
+	return ce.Token.Line
+}
+
 func (ce *CallExpression) expressionNode() {}
 
 // TokenLiteral .
@@ -298,6 +431,16 @@ type StringLiteral struct {
 	Token token.Token
 }
 
+// SetLine .
+func (sl *StringLiteral) SetLine(s uint64) {
+	sl.Token.Line = s
+}
+
+// Line .
+func (sl *StringLiteral) Line() uint64 {
+	return sl.Token.Line
+}
+
 func (sl *StringLiteral) expressionNode() {}
 
 // TokenLiteral .
@@ -310,6 +453,16 @@ func (sl *StringLiteral) String() string { return sl.Token.Literal }
 type ArrayLiteral struct {
 	Token    token.Token
 	Elements []Expression
+}
+
+// SetLine .
+func (al *ArrayLiteral) SetLine(s uint64) {
+	al.Token.Line = s
+}
+
+// Line .
+func (al *ArrayLiteral) Line() uint64 {
+	return al.Token.Line
 }
 
 func (al *ArrayLiteral) expressionNode() {}
@@ -335,6 +488,16 @@ type IndexExpression struct {
 	Token token.Token
 	Left  Expression
 	Right Expression
+}
+
+// SetLine .
+func (ie *IndexExpression) SetLine(s uint64) {
+	ie.Token.Line = s
+}
+
+// Line .
+func (ie *IndexExpression) Line() uint64 {
+	return ie.Token.Line
 }
 
 func (ie *IndexExpression) expressionNode() {}

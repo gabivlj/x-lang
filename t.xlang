@@ -1,0 +1,11 @@
+log(1)
+
+let countN = fn (x, y) {
+  log(x);
+  if (x > y) { 
+    return x; 
+  } 
+  return countN(x + 1, y);
+};
+
+countN(1, 1000);

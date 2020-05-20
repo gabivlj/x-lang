@@ -19,8 +19,10 @@ const (
 	// StringObject is a string representation in Xlang
 	StringObject = "STRING"
 	// BuiltinObject are things that are already implemented in the language
-	BuiltinObject        = "BUILTIN"
-	BuiltinObjectSpecial = "BUILTIN_SPECIAL"
+	BuiltinObject = "BUILTIN"
+
+	// LogObject is an object which if you return with log(...) will log it into the logger.
+	LogObject = "LOG"
 	// ArrayObject is the builtin array system in Xlang
 	ArrayObject = "ARRAY"
 )

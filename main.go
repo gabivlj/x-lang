@@ -1,12 +1,15 @@
 package main
 
 import (
-	"os"
-	"xlang/repl"
+	"fmt"
+	"xlang/runtime"
 )
 
 func main() {
-
-	repl.Start(os.Stdin, os.Stdout)
-
+	// repl.Start(os.Stdin, os.Stdout)
+	output, err := runtime.OpenFileAndParse("t.xlang")
+	if err != nil {
+		fmt.Println(err)
+	}
+	output.Print()
 }

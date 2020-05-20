@@ -24,6 +24,7 @@ func New(l *lexer.Lexer) *Parser {
 
 	p.prefixParseFns = make(map[token.TypeToken]prefixParseFn)
 	p.infixParseFns = make(map[token.TypeToken]infixParseFn)
+	p.registerInfix(token.JUMP, p.parseInfixExpression)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
 	p.registerInfix(token.SLASH, p.parseInfixExpression)
@@ -69,12 +70,15 @@ func (p *Parser) ParseProgram() *ast.Program {
 
 	for p.curToken.Type != token.EOF {
 		stmt := p.parseStatement()
+		if len(p.errors) > 0 && program.Line() == 0 {
+			program.SetLine(p.l.Line)
+		}
 		if stmt != nil {
 			program.Statements = append(program.Statements, stmt)
 		}
-
 		p.nextToken()
 	}
+
 	if len(p.errors) > 0 {
 		fmt.Println(p.Errors())
 	}
@@ -83,6 +87,11 @@ func (p *Parser) ParseProgram() *ast.Program {
 
 func (p *Parser) parseStatement() ast.Statement {
 	switch p.curToken.Type {
+	case token.JUMP:
+		{
+			p.nextToken()
+			return nil
+		}
 	case token.LET:
 		{
 			// We do this messy stuff because if we returned directly we wouldn't be able to check fast enough if it's nil.

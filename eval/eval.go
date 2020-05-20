@@ -20,21 +20,25 @@ func booleanToObject(boolean bool) *object.Boolean {
 
 // Evaluator evaluates an AST of Xlang
 type Evaluator struct {
-	env *object.Environment
+	env    *object.Environment
+	Line   uint64
+	Log    []object.Object
+	LogRef *[]object.Object
 }
 
 // NewEval returns a new evaluator of AST
 func NewEval() *Evaluator {
-	return &Evaluator{env: object.NewEnvironment()}
+	return &Evaluator{env: object.NewEnvironment(), LogRef: nil, Log: []object.Object{}}
 }
 
-// ExtendEval returns a new evaluator with the environment you pass
-func ExtendEval(env *object.Environment) *Evaluator {
-	return &Evaluator{env: env}
+// ExtendEval returns a new evaluator with the environment and logger you pass
+func ExtendEval(env *object.Environment, log []object.Object, line uint64) *Evaluator {
+	return &Evaluator{env: env, Log: log, LogRef: &log, Line: line}
 }
 
 // Eval evals an ast node.
 func (e *Evaluator) Eval(node ast.Node) object.Object {
+	e.Line = node.Line()
 	switch node := node.(type) {
 	case *ast.IndexExpression:
 		{
@@ -156,7 +160,13 @@ func (e *Evaluator) applyFunction(fn object.Object, params []object.Object) obje
 		if !ok {
 			return object.NewError("Expected function, got %s instead", fn.Type())
 		}
-		return builtin.Fn(params...)
+		fnRes := builtin.Fn(params...)
+		if fnRes.Type() == object.LogObject {
+			log := fnRes.(*object.Log)
+			log.Line = e.Line
+			e.Log = append(e.Log, fnRes)
+		}
+		return fnRes
 	}
 
 	if len(params) != len(function.Parameters) {
@@ -164,8 +174,10 @@ func (e *Evaluator) applyFunction(fn object.Object, params []object.Object) obje
 	}
 
 	extendedEnvironment := e.newEnvironmentForFunction(function, params)
-	eval := ExtendEval(extendedEnvironment)
+	eval := ExtendEval(extendedEnvironment, e.Log, e.Line)
 	returnValue := eval.Eval(function.Body)
+	e.Log = eval.Log
+	e.Line = eval.Line
 	tryUnwrapReturnValue, ok := returnValue.(*object.ReturnValue)
 	if !ok {
 		return returnValue
