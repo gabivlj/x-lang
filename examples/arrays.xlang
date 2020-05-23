@@ -1,4 +1,5 @@
 // Variables usually are immutable in Xlang (except for hashmaps)
+// Example: If you declare the variable x, you cant do x = 10 later on, but you can redeclare like let x = 10
 // When you push or pop an array, you wont change directly the array.
 // You will get the new array (with the changes made) but the original wasn't mutated
 
