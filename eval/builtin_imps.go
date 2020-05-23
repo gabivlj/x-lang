@@ -164,3 +164,30 @@ func Keys(args ...object.Object) object.Object {
 	}
 	return &arr
 }
+
+// Delete a key from a hash table
+func Delete(args ...object.Object) object.Object {
+	if len(args) != 2 {
+		return object.NewError("Error: Expected 2 argument on delete() but got %d", len(args))
+	}
+	hash, ok := args[0].(*object.HashMap)
+	if !ok {
+		return object.NewError("Error: Expected HashMap as firs argument on delete() but got %s", args[0].Type())
+	}
+	hashable, ok := args[1].(object.Hashable)
+	if ok {
+		hashed := hashable.HashKey()
+		h, ok := hash.Pairs[hashed]
+		if !ok {
+			return NULL
+		}
+		delete(hash.Pairs, hashed)
+		return h.Value
+	}
+	h, ok := hash.UnhashablePairs[args[1]]
+	if !ok {
+		return NULL
+	}
+	delete(hash.UnhashablePairs, args[1])
+	return h.Value
+}

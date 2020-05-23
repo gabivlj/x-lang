@@ -48,4 +48,8 @@ var builtins = map[string]*object.Builtin{
 	"keys": {
 		Fn: Keys,
 	},
+
+	"delete": {
+		Fn: Delete,
+	},
 }
