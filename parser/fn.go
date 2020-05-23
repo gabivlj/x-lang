@@ -6,7 +6,9 @@ import (
 )
 
 func (p *Parser) parseFunctionLiteral() ast.Expression {
-	lit := &ast.FunctionLiteral{Token: p.curToken}
+
+	lit := ast.FunctionLiteral{Token: p.curToken}
+
 	if !p.expectPeek(token.LPAREN) {
 		return nil
 	}
@@ -19,7 +21,7 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 
 	lit.Body = p.parseBlockStatement()
 
-	return lit
+	return &lit
 }
 
 func (p *Parser) parseFunctionParameters() []*ast.Identifier {

@@ -1,0 +1,13 @@
+let i = 1;
+let j = 2;
+
+// 3
+let plus = i + j;
+log(plus)
+
+// -1
+let minus = i - j;
+log(minus);
+// 0
+let divide = i / j;
+log(divide)

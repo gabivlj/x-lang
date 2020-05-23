@@ -1,6 +1,7 @@
 package eval
 
 import (
+	"fmt"
 	"xlang/object"
 )
 
@@ -31,6 +32,9 @@ var builtins = map[string]*object.Builtin{
 	},
 	"log": {
 		Fn: func(args ...object.Object) object.Object {
+			for _, arg := range args {
+				fmt.Println("QIE ES", arg.Inspect())
+			}
 			if len(args) == 0 {
 				return &object.Log{Message: NULL}
 			}

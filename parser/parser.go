@@ -36,7 +36,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
 
-	p.registerPrefix(token.LBRACE, p.parseHashLiteral)
+	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
@@ -47,7 +47,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.IF, p.parseIfExpression)
-	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
+
+	p.registerPrefix(token.LBRACE, p.parseHashLiteral)
 
 	p.nextToken()
 	p.nextToken()
@@ -63,14 +64,13 @@ func (p *Parser) nextToken() {
 
 // ParseProgram parses statements and add them to the ast tree
 func (p *Parser) ParseProgram() *ast.Program {
-	defer func() {
-		recover()
-	}()
+
 	program := &ast.Program{}
 	program.Statements = []ast.Statement{}
 
 	for p.curToken.Type != token.EOF {
 		stmt := p.parseStatement()
+		fmt.Println(stmt.TokenLiteral())
 		if len(p.errors) > 0 && program.Line() == 0 {
 			program.SetLine(p.l.Line)
 		}

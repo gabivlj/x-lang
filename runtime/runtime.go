@@ -70,25 +70,28 @@ func OpenFileAndParse(filePath string) (*Output, error) {
 	}
 	code := string(byteCode)
 	output := Parse(code)
+
 	return output, nil
 }
 
 // Parse .
 func Parse(code string) *Output {
+	code = strings.TrimSpace(code)
 	betterCode := strings.Builder{}
+	nOfComments := 0
 	for _, s := range strings.Split(code, "\n") {
-		s := strings.TrimSpace(s)
-		if len(s) < 2 {
+		s2 := strings.TrimSpace(s)
+		if len(s2) < 2 || s2[:2] != "//" {
+			betterCode.WriteString(s + string('\n'))
+		} else {
+			nOfComments++
 			continue
 		}
-		if s[:2] == "//" {
-			continue
-		}
-		betterCode.WriteString(s)
+
 	}
 
 	code = betterCode.String()
-
+	fmt.Println(code)
 	eval := eval.NewEval()
 	AddToStandardFunctions(eval)
 	output := Output{}
@@ -97,7 +100,7 @@ func Parse(code string) *Output {
 	parser := parser.New(l)
 	program := parser.ParseProgram()
 	if len(parser.Errors()) > 0 {
-		return &Output{ParseError: Message{Line: uint64(program.Line()), Message: parser.Errors()}}
+		return &Output{ParseError: Message{Line: uint64(program.Line()) + uint64(nOfComments), Message: parser.Errors()}}
 	}
 	if program == nil {
 		return &Output{ParseError: Message{Line: 0, Message: []string{"Error parsing program"}}}
@@ -109,11 +112,11 @@ func Parse(code string) *Output {
 	for _, message := range eval.Log {
 		if message.Type() == object.LogObject {
 			message := message.(*object.Log)
-			output.Output = append(output.Output, Message{Line: uint64(message.Line), Message: []string{message.Inspect()}})
+			output.Output = append(output.Output, Message{Line: message.Line + uint64(nOfComments), Message: []string{message.Inspect()}})
 		}
 	}
 	if message.Type() == object.ErrorObject {
-		output.Error = Message{Line: uint64(program.Line()), Message: []string{message.Inspect()}}
+		output.Error = Message{Line: uint64(program.Line()) + uint64(nOfComments), Message: []string{message.Inspect()}}
 		return &output
 	}
 
@@ -172,6 +175,16 @@ let reduce = fn(arr, initial, f) {
 			iter(shift(arr), f(result, first(arr)));
 		}
 	 iter(arr, initial) 
+}
+
+let map = fn(x, f) {
+  let iter = fn (arr, result) {
+    if (len(arr) == 0) {
+      return result;
+    }
+    iter(shift(arr), push(result, f(first(arr))));
+  }
+  iter(x, []);
 }
 `
 

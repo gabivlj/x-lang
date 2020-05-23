@@ -1,0 +1,6 @@
+let str = "This is a";
+let strtwo = "string!";
+
+log(str + " " + strtwo);
+
+

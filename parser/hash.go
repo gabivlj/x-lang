@@ -12,7 +12,6 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 		key := p.parseExpression(LOWEST)
 
 		if !p.expectPeek(token.COLON) {
-
 			return nil
 		}
 

@@ -38,7 +38,6 @@ func ExtendEval(env *object.Environment, log []object.Object, line uint64) *Eval
 
 // Eval evals an ast node.
 func (e *Evaluator) Eval(node ast.Node) object.Object {
-
 	if node != nil {
 		e.Line = node.Line()
 	}
@@ -191,7 +190,7 @@ func (e *Evaluator) applyFunction(fn object.Object, params []object.Object) obje
 	if !ok {
 		return returnValue
 	}
-	return tryUnwrapReturnValue
+	return tryUnwrapReturnValue.Value
 }
 
 func (e *Evaluator) evaluateIndex(left object.Object, right object.Object) object.Object {

@@ -1,0 +1,51 @@
+// Variables usually are immutable in Xlang (except for hashmaps)
+// When you push or pop an array, you wont change directly the array.
+// You will get the new array (with the changes made) but the original wasn't mutated
+
+let arr = [1, 2, 3];
+
+// This is already done in the standard methods of Xlang, but it's just for showing you how its implemented!
+let map = fn(x, f) {
+  let iter = fn (arr, result) {
+    if (len(arr) == 0) {
+      return result;
+    }
+    iter(shift(arr), push(result, f(first(arr))));
+  }
+  // In Xlang there are implicit returns! This is the same as saying: return iter(x, []);
+  iter(x, []);
+}
+
+// [2, 3, 4]
+let what = map(arr, fn (element) { element + 1 });
+// At the end of the file if you want logs call log()...
+log(what)
+
+// [2, 3, 4, 222]
+let what = push(what, 222);
+log(what);
+// [2, 3, 4]
+let what = pop(what);
+log(what);
+// [1, 2, 3, 4]
+let what = unshift(what, 1)
+log(what)
+// [1000, 2, 3, 4]
+let what = set(what, 0, 10000)
+log(what)
+
+// Another function implemented already, but just showing you how it works!
+let filter = fn(x, condition) {
+  let iter = fn(x, result) {
+    if (len(x) == 0) {
+      return result
+    }
+    // If the condition is met, we pass to the next iteration the updated array, but if not, we keep the same array!
+    iter(shift(x), if (condition(first(x))) { push(result, first(x)) } else { result })
+  }
+  iter(x, [])
+}
+
+// [2, 3, 4]
+let filtered = filter(what, fn(n) { n < 1000 })
+log(filtered)

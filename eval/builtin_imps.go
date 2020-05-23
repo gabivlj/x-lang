@@ -128,8 +128,12 @@ func Set(args ...object.Object) object.Object {
 	if int(number.Value) >= len(arr.Elements) || int(number.Value) < 0 {
 		return NULL
 	}
-	arr.Elements[number.Value] = args[2]
-	return arr.Elements[number.Value]
+	arrElements := make([]object.Object, len(arr.Elements))
+	copy(arrElements, arr.Elements)
+	newArr := &object.Array{Elements: arrElements}
+
+	newArr.Elements[number.Value] = args[2]
+	return newArr
 }
 
 // SetHash creates a new entry in the hashmap
