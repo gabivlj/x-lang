@@ -67,6 +67,8 @@ func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
 	l.skipWhiteSpace()
 	switch l.ch {
+	case ':':
+		tok = newToken(token.COLON, l.ch)
 	// case '\n':
 	// 	tok = newToken(token.JUMP, l.ch)
 	case '[':

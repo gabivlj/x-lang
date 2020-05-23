@@ -25,6 +25,8 @@ const (
 	LogObject = "LOG"
 	// ArrayObject is the builtin array system in Xlang
 	ArrayObject = "ARRAY"
+	// HashObject is a hashmap
+	HashObject = "HASH"
 )
 
 // Object is a xlang object.

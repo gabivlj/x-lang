@@ -115,6 +115,10 @@ func Set(args ...object.Object) object.Object {
 	}
 	arr, ok := array(args[0])
 	if !ok {
+		hash, k := args[0].(*object.HashMap)
+		if k {
+			return SetHash(hash, args[1], args[2])
+		}
 		return object.NewError("Unexpected type for first(); got %s", args[0].Type())
 	}
 	number, ok := args[1].(*object.Integer)
@@ -126,4 +130,37 @@ func Set(args ...object.Object) object.Object {
 	}
 	arr.Elements[number.Value] = args[2]
 	return arr.Elements[number.Value]
+}
+
+// SetHash creates a new entry in the hashmap
+func SetHash(arg *object.HashMap, newKey object.Object, setVal object.Object) object.Object {
+	hashable, ok := newKey.(object.Hashable)
+	if !ok {
+		arg.UnhashablePairs[newKey] = object.HashPair{Key: newKey, Value: setVal}
+		return setVal
+	}
+	hashed := hashable.HashKey()
+	arg.Pairs[hashed] = object.HashPair{Key: newKey, Value: setVal}
+	return setVal
+}
+
+// Keys is the keys() function, accepts one hashtable and returns the keys of this
+func Keys(args ...object.Object) object.Object {
+	if len(args) != 1 {
+		return object.NewError("Error: Expected 1 argument on keys() but got %d", len(args))
+	}
+	hashTable, ok := args[0].(*object.HashMap)
+	if !ok {
+		return object.NewError("Error: Expected object of type HashTable on keys(), got: %s", args[0].Type())
+	}
+	arr := object.Array{Elements: make([]object.Object, 0, len(hashTable.Pairs)+len(hashTable.UnhashablePairs))}
+	for _, obj := range hashTable.Pairs {
+		key := obj.Key
+		arr.Elements = append(arr.Elements, key)
+	}
+	for _, obj := range hashTable.UnhashablePairs {
+		key := obj.Key
+		arr.Elements = append(arr.Elements, key)
+	}
+	return &arr
 }

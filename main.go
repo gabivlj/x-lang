@@ -7,7 +7,7 @@ import (
 
 func main() {
 	// repl.Start(os.Stdin, os.Stdout)
-	output, err := runtime.OpenFileAndParse("t.xlang")
+	output, err := runtime.OpenFileAndParse("examples/hashtable_example.xlang")
 	if err != nil {
 		fmt.Println(err)
 	}

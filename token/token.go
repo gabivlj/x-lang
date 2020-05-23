@@ -42,7 +42,7 @@ const (
 	RBRACE = TypeToken("}")
 
 	SEMICOLON = TypeToken(";")
-	COLON     = TypeToken(",")
+	COLON     = TypeToken(":")
 	ASSIGN    = TypeToken("=")
 
 	// Keywords

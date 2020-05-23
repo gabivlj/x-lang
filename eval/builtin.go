@@ -44,4 +44,8 @@ var builtins = map[string]*object.Builtin{
 			return &object.Log{Message: &arr}
 		},
 	},
+
+	"keys": {
+		Fn: Keys,
+	},
 }

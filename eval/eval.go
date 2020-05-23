@@ -38,8 +38,17 @@ func ExtendEval(env *object.Environment, log []object.Object, line uint64) *Eval
 
 // Eval evals an ast node.
 func (e *Evaluator) Eval(node ast.Node) object.Object {
-	e.Line = node.Line()
+
+	if node != nil {
+		e.Line = node.Line()
+	}
+
 	switch node := node.(type) {
+	case *ast.HashLiteral:
+		{
+			return e.evalHash(node)
+		}
+
 	case *ast.IndexExpression:
 		{
 			left := e.Eval(node.Left)
@@ -191,8 +200,28 @@ func (e *Evaluator) evaluateIndex(left object.Object, right object.Object) objec
 		{
 			return e.evaluateArrayIndex(obj, right)
 		}
+	case *object.HashMap:
+		{
+			return e.evaluateHashIndex(obj, right)
+		}
 	}
 	return object.NewError("Unsupported index operation on type: %s", left.Type())
+}
+
+func (e *Evaluator) evaluateHashIndex(hash *object.HashMap, right object.Object) object.Object {
+	switch objRight := right.(type) {
+	case object.Hashable:
+		val := hash.Pairs[objRight.HashKey()]
+		if val.Value == nil {
+			return NULL
+		}
+		return val.Value
+	}
+	val := hash.UnhashablePairs[right]
+	if val.Value != nil {
+		return val.Value
+	}
+	return NULL
 }
 
 func (e *Evaluator) evaluateArrayIndex(array *object.Array, right object.Object) object.Object {
@@ -408,4 +437,29 @@ func (e *Evaluator) evalBangOperatorRight(right object.Object) object.Object {
 	default:
 		return FALSE
 	}
+}
+
+func (e *Evaluator) evalHash(node *ast.HashLiteral) object.Object {
+	pairs := make(map[object.HashKey]object.HashPair, len(node.Pairs))
+	unhashablePairs := make(map[object.Object]object.HashPair, len(node.Pairs))
+	for keyNode, valueNode := range node.Pairs {
+		key := e.Eval(keyNode)
+		if object.IsError(key) {
+			return key
+		}
+		value := e.Eval(valueNode)
+		if object.IsError(value) {
+			return value
+		}
+		hashKey, ok := key.(object.Hashable)
+
+		if !ok {
+			unhashablePairs[key] = object.HashPair{Value: value, Key: key}
+			continue
+		}
+		k := hashKey.HashKey()
+		pairs[k] = object.HashPair{Value: value, Key: key}
+	}
+
+	return &object.HashMap{Pairs: pairs, UnhashablePairs: unhashablePairs}
 }

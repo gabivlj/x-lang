@@ -509,3 +509,38 @@ func (ie *IndexExpression) TokenLiteral() string { return ie.Token.Literal }
 func (ie *IndexExpression) String() string {
 	return fmt.Sprintf("(%s[%s])", ie.Left.String(), ie.Right.String())
 }
+
+// HashLiteral is a hash { "something": 2 }
+type HashLiteral struct {
+	Token token.Token
+	Pairs map[Expression]Expression
+}
+
+// SetLine .
+func (hl *HashLiteral) SetLine(s uint64) {
+	hl.Token.Line = s
+}
+
+// Line .
+func (hl *HashLiteral) Line() uint64 {
+
+	return hl.Token.Line
+}
+
+func (hl *HashLiteral) expressionNode() {}
+
+// TokenLiteral .
+func (hl *HashLiteral) TokenLiteral() string { return hl.Token.Literal }
+
+// String .
+func (hl *HashLiteral) String() string {
+	var out bytes.Buffer
+
+	pairs := make([]string, 0, len(hl.Pairs))
+	for key, value := range hl.Pairs {
+		pairs = append(pairs, key.String()+":"+value.String())
+	}
+
+	out.WriteString(fmt.Sprintf("{ %s }", strings.Join(pairs, ", ")))
+	return out.String()
+}

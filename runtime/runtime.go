@@ -75,6 +75,20 @@ func OpenFileAndParse(filePath string) (*Output, error) {
 
 // Parse .
 func Parse(code string) *Output {
+	betterCode := strings.Builder{}
+	for _, s := range strings.Split(code, "\n") {
+		s := strings.TrimSpace(s)
+		if len(s) < 2 {
+			continue
+		}
+		if s[:2] == "//" {
+			continue
+		}
+		betterCode.WriteString(s)
+	}
+
+	code = betterCode.String()
+
 	eval := eval.NewEval()
 	AddToStandardFunctions(eval)
 	output := Output{}
@@ -84,6 +98,9 @@ func Parse(code string) *Output {
 	program := parser.ParseProgram()
 	if len(parser.Errors()) > 0 {
 		return &Output{ParseError: Message{Line: uint64(program.Line()), Message: parser.Errors()}}
+	}
+	if program == nil {
+		return &Output{ParseError: Message{Line: 0, Message: []string{"Error parsing program"}}}
 	}
 	message := eval.Eval(program)
 	if message == nil {

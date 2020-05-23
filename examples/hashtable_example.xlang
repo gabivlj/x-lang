@@ -1,0 +1,5 @@
+let arr = [1, 2, 3]
+let dict = {"1": 2, arr: {1: 1}};
+set(dict, "2", true)
+// 2, { 1: 1 }, { 1: 2, 2: true, [1,2,3]: { 1: 1 } }, [1,2,[1,2,3]]
+log(dict["1"], dict[arr], dict, keys(dict))
