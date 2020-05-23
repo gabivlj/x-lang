@@ -2,7 +2,7 @@ const uri = `http://localhost:8080/api/v1`;
 
 const runCode = async code => {
   try {
-    const run = await fetch('http://localhost:8080/api/v1', {
+    const run = await fetch(`${uri}/api/v1`, {
       body: JSON.stringify({ code }),
       method: 'PUT',
       headers: {
