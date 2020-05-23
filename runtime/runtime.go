@@ -18,8 +18,8 @@ const ERROR_MSG = `✖ ✗ ✘ ẋ ☠ ẍ x Ẍ`
 
 // Message is a message of Xlang
 type Message struct {
-	Line    uint64
-	Message []string
+	Line    uint64   `json:"line"`
+	Message []string `json:"messages"`
 }
 
 // Prettify prettifies a message
@@ -39,9 +39,9 @@ func (m *Message) Prettify(showLines bool) string {
 
 // Output output of the program
 type Output struct {
-	ParseError Message
-	Error      Message
-	Output     []Message
+	ParseError Message   `json:"parse_error"`
+	Error      Message   `json:"error"`
+	Output     []Message `json:"output"`
 }
 
 // Print the output of the program
