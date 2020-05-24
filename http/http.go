@@ -39,7 +39,7 @@ func RunServer() {
 	})
 
 	router.ServeFiles("/*filepath", http.Dir("/"))
-	port := os.Getenv("PORT_GO")
+	port := os.Getenv("PORT")
 	if port == "" {
 		port = ":8080"
 	}
