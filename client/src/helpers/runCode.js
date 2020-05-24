@@ -1,7 +1,10 @@
-export const uri = `${
-  process.env.REACT_APP_DEPLOY ? 'https' : 'http'
-}://${process.env.REACT_APP_URI || '0.0.0.0'}:${process.env.REACT_APP_PORT ||
-  '2222'}/api/v1`;
+let uriBuild = `${process.env.REACT_APP_DEPLOY ? 'https' : 'http'}://${process
+  .env.REACT_APP_URI || '0.0.0.0'}:${process.env.REACT_APP_PORT ||
+  '8080'}/api/v1`;
+if (uriBuild.includes('https')) {
+  uriBuild = uriBuild.replace(process.env.REACT_APP_PORT, '');
+}
+export const uri = uriBuild;
 
 export const runCode = async code => {
   try {
