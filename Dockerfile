@@ -12,6 +12,7 @@ FROM node:alpine AS node_builder
 COPY --from=builder /app/client ./
 ARG PORT
 ARG URI
+ENV REACT_APP_DEPLOY true
 ENV REACT_APP_PORT $PORT
 ENV REACT_APP_URI $URI
 RUN npm install

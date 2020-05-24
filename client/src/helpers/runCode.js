@@ -1,5 +1,7 @@
-export const uri = `http://${process.env.REACT_APP_URI || '0.0.0.0'}:${process
-  .env.REACT_APP_PORT || '2222'}/api/v1`;
+export const uri = `${
+  process.env.REACT_APP_DEPLOY ? 'https' : 'http'
+}://${process.env.REACT_APP_URI || '0.0.0.0'}:${process.env.REACT_APP_PORT ||
+  '2222'}/api/v1`;
 
 export const runCode = async code => {
   try {
