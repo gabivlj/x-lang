@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"xlang/runtime"
 
 	"github.com/julienschmidt/httprouter"
@@ -38,6 +39,9 @@ func RunServer() {
 	})
 
 	router.ServeFiles("/*filepath", http.Dir("/"))
-
-	http.ListenAndServe(":8080", router)
+	port := os.Getenv("PORT_GO")
+	if port == "" {
+		port = ":8080"
+	}
+	http.ListenAndServe(port, router)
 }
