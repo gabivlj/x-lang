@@ -26,7 +26,10 @@ const getExample = async get => {
     const json = await run.json();
     return [text, json];
   } catch (err) {
-    return '// Your code!';
+    return [
+      '// Your code',
+      { data: { output: { message: { messages: [''], line: '0' } } } }
+    ];
   }
 };
 

@@ -1,7 +1,7 @@
 let uriBuild = `${process.env.REACT_APP_DEPLOY ? 'https' : 'http'}://${process
   .env.REACT_APP_URI || '0.0.0.0'}:${process.env.REACT_APP_PORT ||
   '8080'}/api/v1`;
-if (uriBuild.includes('https')) {
+if (uriBuild.includes('https') && uriBuild.includes(':80')) {
   uriBuild = uriBuild.replace(process.env.REACT_APP_PORT, '');
 }
 export const uri = uriBuild;
