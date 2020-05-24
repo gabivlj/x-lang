@@ -1,3 +1,5 @@
+import { uri } from './runCode';
+
 const host = 'https://raw.githubusercontent.com/gabivlj/x-lang/master/examples';
 
 const url = {
@@ -9,11 +11,11 @@ const url = {
 const getExample = async get => {
   try {
     if (!url[get]) return '// Your code!';
-    const uri = url[get];
-    const data = await fetch(uri);
+    const URIGithub = url[get];
+    const data = await fetch(URIGithub);
     const text = await data.text();
 
-    const run = await fetch('http://localhost:8080/api/v1', {
+    const run = await fetch(uri, {
       body: JSON.stringify({ code: text }),
       method: 'PUT',
       headers: {

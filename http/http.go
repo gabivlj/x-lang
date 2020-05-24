@@ -37,5 +37,7 @@ func RunServer() {
 		w.Write(bytes)
 	})
 
+	router.ServeFiles("/*filepath", http.Dir("/"))
+
 	http.ListenAndServe(":8080", router)
 }

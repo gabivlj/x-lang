@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import MonacoEditor from 'react-monaco-editor';
 import getExample from '../../helpers/getExample';
-import runCode from '../../helpers/runCode';
+import { runCode } from '../../helpers/runCode';
 import Terminal from './Terminal';
 
 export default function Editor() {

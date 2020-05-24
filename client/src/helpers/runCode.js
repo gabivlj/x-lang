@@ -1,8 +1,9 @@
-const uri = `http://localhost:8080/api/v1`;
+export const uri = `http://${process.env.REACT_APP_URI || '0.0.0.0'}:${process
+  .env.REACT_APP_PORT || '2222'}/api/v1`;
 
-const runCode = async code => {
+export const runCode = async code => {
   try {
-    const run = await fetch(`${uri}/api/v1`, {
+    const run = await fetch(`${uri}`, {
       body: JSON.stringify({ code }),
       method: 'PUT',
       headers: {
@@ -20,5 +21,3 @@ const runCode = async code => {
     return { error: { line: 0, messages: ['Error running the code'] } };
   }
 };
-
-export default runCode;
