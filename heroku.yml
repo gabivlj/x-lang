@@ -3,6 +3,6 @@ build:
     web: Dockerfile
     worker:
       dockerfile: Dockerfile
-    config:
-      PORT: 80
-      URI: https://boiling-basin-02644.herokuapp.com/
+  config:
+    PORT: 80
+    URI: https://boiling-basin-02644.herokuapp.com/
