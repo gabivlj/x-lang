@@ -39,9 +39,10 @@ func RunServer() {
 	})
 
 	router.ServeFiles("/*filepath", http.Dir("/"))
-	port := os.Getenv("PORT")
-	if port == "" {
+	port := ":" + os.Getenv("PORT")
+	if port == ":" {
 		port = ":8080"
 	}
-	http.ListenAndServe(port, router)
+	err := http.ListenAndServe(port, router)
+	panic(err)
 }
