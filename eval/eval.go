@@ -99,7 +99,6 @@ func (e *Evaluator) Eval(node ast.Node) object.Object {
 				return val
 			}
 			e.env.Set(node.Name.Value, val)
-
 		}
 	case *ast.Identifier:
 		{
