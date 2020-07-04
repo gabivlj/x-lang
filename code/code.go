@@ -17,6 +17,24 @@ const (
 	OpConstant Opcode = iota
 	// OpAdd is a operation for adding 2 numbers
 	OpAdd
+	// OpPop is an operation that tells the VM to pop the topmost element off the stack
+	OpPop
+	// OpSub operation for substract
+	OpSub
+	// OpMul operation for multiplication
+	OpMul
+	// OpDiv operation for dividing
+	OpDiv
+	// OpTrue pushes a true object into the stack
+	OpTrue
+	// OpFalse pushes a false object into the stack
+	OpFalse
+	// OpEqual makes a == comparison
+	OpEqual
+	// OpNotEqual makes a != comparison
+	OpNotEqual
+	// OpGreaterThan makes a > comparison
+	OpGreaterThan
 )
 
 // Definition is the definition of a operand
@@ -27,8 +45,17 @@ type Definition struct {
 
 // definitions of operands
 var definitions = map[Opcode]*Definition{
-	OpConstant: {"OpConstant", []int{2}},
-	OpAdd:      {"OpAdd", []int{}},
+	OpConstant:    {"OpConstant", []int{2}},
+	OpAdd:         {"OpAdd", []int{}},
+	OpPop:         {"OpPop", []int{}},
+	OpSub:         {"OpSub", []int{}},
+	OpDiv:         {"OpDiv", []int{}},
+	OpMul:         {"OpMul", []int{}},
+	OpTrue:        {"OpTrue", []int{}},
+	OpFalse:       {"OpFalse", []int{}},
+	OpEqual:       {"OpEqual", []int{}},
+	OpNotEqual:    {"OpNotEqual", []int{}},
+	OpGreaterThan: {"OpGreaterThan", []int{}},
 }
 
 // Lookup an operand in the definition table

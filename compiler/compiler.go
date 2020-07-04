@@ -39,20 +39,52 @@ func (c *Compiler) Compile(node ast.Node) error {
 			if err != nil {
 				return err
 			}
+			c.emit(code.OpPop)
+		}
+	case *ast.Boolean:
+		{
+			if node.Value {
+				c.emit(code.OpTrue)
+			} else {
+				c.emit(code.OpFalse)
+			}
 		}
 	case *ast.InfixExpression:
 		{
-			err := c.Compile(node.Left)
+			// Change the order of operations in case
+			nodeToUseForLeft := node.Left
+			nodeToUseForRight := node.Right
+			if node.Operator == "<" {
+				nodeToUseForLeft = node.Right
+				nodeToUseForRight = node.Left
+			}
+			err := c.Compile(nodeToUseForLeft)
 			if err != nil {
 				return err
 			}
-			err = c.Compile(node.Right)
+			err = c.Compile(nodeToUseForRight)
 			if err != nil {
 				return err
 			}
 			switch node.Operator {
 			case "+":
 				c.emit(code.OpAdd)
+			case "-":
+				c.emit(code.OpSub)
+			case "*":
+				c.emit(code.OpMul)
+			case "/":
+				c.emit(code.OpDiv)
+			case "<":
+				// Check beginning of case, we change the order of operators
+				c.emit(code.OpGreaterThan)
+			case ">":
+				c.emit(code.OpGreaterThan)
+			case "==":
+				c.emit(code.OpEqual)
+			case "!=":
+				c.emit(code.OpNotEqual)
+
 			default:
 				return fmt.Errorf("unknown operator %s", node.Operator)
 			}
