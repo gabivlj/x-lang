@@ -70,7 +70,6 @@ func (p *Parser) ParseProgram() *ast.Program {
 
 	for p.curToken.Type != token.EOF {
 		stmt := p.parseStatement()
-		fmt.Println(stmt.TokenLiteral())
 		if len(p.errors) > 0 && program.Line() == 0 {
 			program.SetLine(p.l.Line)
 		}

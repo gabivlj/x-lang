@@ -1,9 +1,12 @@
 package main
 
 import (
-	"xlang/http"
+	"os"
+	"xlang/repl"
 )
 
 func main() {
-	http.RunServer()
+	// http.RunServer()
+
+	repl.StartVM(os.Stdin, os.Stdout)
 }
