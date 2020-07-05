@@ -12,6 +12,7 @@ const StackSize = 2048
 
 var True = &object.Boolean{Value: true}
 var False = &object.Boolean{Value: false}
+var Null = &object.Null{}
 
 // VM holds all the Virtual Machine information and logic
 type VM struct {
@@ -40,11 +41,42 @@ func (vm *VM) StackTop() object.Object {
 	return vm.stack[vm.sp-1]
 }
 
+func isTruthy(o object.Object) bool {
+	switch o := o.(type) {
+	case *object.Boolean:
+		return o.Value
+	case *object.Null:
+		return false
+	}
+	return true
+}
+
 // Run runs the VM
 func (vm *VM) Run() error {
 	for ip := 0; ip < len(vm.instructions); ip++ {
 		op := code.Opcode(vm.instructions[ip])
 		switch op {
+		case code.OpJump:
+			{
+				pos := int(binary.BigEndian.Uint16(vm.instructions[ip+1:]))
+				ip = pos - 1
+			}
+		case code.OpJumpNotTruthy:
+			{
+				pos := int(binary.BigEndian.Uint16(vm.instructions[ip+1:]))
+				// Skip the 2 bytes of this operand
+				ip += 2
+				condition := vm.pop()
+				if !isTruthy(condition) {
+					ip = pos - 1
+				}
+			}
+		case code.OpNull:
+			{
+				if err := vm.push(Null); err != nil {
+					return err
+				}
+			}
 		case code.OpConstant:
 			{
 				ip++
@@ -149,9 +181,39 @@ func (vm *VM) Run() error {
 					}
 				}
 			}
+		case code.OpBang:
+			{
+				if err := vm.bangOperator(); err != nil {
+					return err
+				}
+			}
+		case code.OpMinus:
+			{
+				integer, err := vm.popIntegerObject()
+				if err != nil {
+					return err
+				}
+				integer.Value = -integer.Value
+				vm.push(integer)
+			}
 		}
 	}
 	return nil
+}
+
+func (vm *VM) bangOperator() error {
+	operand := vm.pop()
+	switch operand {
+	case True:
+		{
+			return vm.push(False)
+		}
+	case False, Null:
+		{
+			return vm.push(True)
+		}
+	}
+	return vm.push(False)
 }
 
 func (vm *VM) numericalComparison(leftInteger *object.Integer, right object.Object, op code.Opcode) error {
