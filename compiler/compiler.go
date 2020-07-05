@@ -69,6 +69,17 @@ func (c *Compiler) Compile(node ast.Node) error {
 				c.instructions = c.instructions[:c.lastInstruction.Position]
 				c.lastInstruction = c.previousInstruction
 			}
+			if node.Alternative != nil {
+				posOfJump := c.emit(code.OpJump, 9999)
+				c.changeOperand(pos, len(c.instructions))
+				c.Compile(node.Alternative)
+				if c.lastInstruction.Opcode == code.OpPop {
+					c.instructions = c.instructions[:c.lastInstruction.Position]
+					c.lastInstruction = c.previousInstruction
+				}
+				c.changeOperand(posOfJump, len(c.instructions))
+				return nil
+			}
 			c.changeOperand(pos, len(c.instructions))
 		}
 	case *ast.BlockStatement:
