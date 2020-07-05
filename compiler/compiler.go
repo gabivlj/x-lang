@@ -69,9 +69,9 @@ func (c *Compiler) Compile(node ast.Node) error {
 				c.instructions = c.instructions[:c.lastInstruction.Position]
 				c.lastInstruction = c.previousInstruction
 			}
+			posOfJump := c.emit(code.OpJump, 9999)
+			c.changeOperand(pos, len(c.instructions))
 			if node.Alternative != nil {
-				posOfJump := c.emit(code.OpJump, 9999)
-				c.changeOperand(pos, len(c.instructions))
 				c.Compile(node.Alternative)
 				if c.lastInstruction.Opcode == code.OpPop {
 					c.instructions = c.instructions[:c.lastInstruction.Position]
@@ -80,7 +80,9 @@ func (c *Compiler) Compile(node ast.Node) error {
 				c.changeOperand(posOfJump, len(c.instructions))
 				return nil
 			}
-			c.changeOperand(pos, len(c.instructions))
+			// If there is no alternative, "fake" it
+			c.emit(code.OpNull)
+			c.changeOperand(posOfJump, len(c.instructions))
 		}
 	case *ast.BlockStatement:
 		{

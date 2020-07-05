@@ -43,6 +43,8 @@ const (
 	OpJumpNotTruthy
 	// OpJump jumps to the desired location
 	OpJump
+	// OpNull tells the VM to put Null in the stack
+	OpNull
 )
 
 // Definition is the definition of a operand
@@ -68,6 +70,7 @@ var definitions = map[Opcode]*Definition{
 	OpBang:          {"OpBang", []int{}},
 	OpJumpNotTruthy: {"OpJumpNotTruthy", []int{2}},
 	OpJump:          {"OpJump", []int{2}},
+	OpNull:          {"OpNull", []int{}},
 }
 
 // Lookup an operand in the definition table
