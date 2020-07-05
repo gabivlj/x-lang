@@ -149,9 +149,39 @@ func (vm *VM) Run() error {
 					}
 				}
 			}
+		case code.OpBang:
+			{
+				if err := vm.bangOperator(); err != nil {
+					return err
+				}
+			}
+		case code.OpMinus:
+			{
+				integer, err := vm.popIntegerObject()
+				if err != nil {
+					return err
+				}
+				integer.Value = -integer.Value
+				vm.push(integer)
+			}
 		}
 	}
 	return nil
+}
+
+func (vm *VM) bangOperator() error {
+	operand := vm.pop()
+	switch operand {
+	case True:
+		{
+			return vm.push(False)
+		}
+	case False:
+		{
+			return vm.push(True)
+		}
+	}
+	return vm.push(False)
 }
 
 func (vm *VM) numericalComparison(leftInteger *object.Integer, right object.Object, op code.Opcode) error {

@@ -35,6 +35,14 @@ const (
 	OpNotEqual
 	// OpGreaterThan makes a > comparison
 	OpGreaterThan
+	// OpMinus -
+	OpMinus
+	// OpBang !
+	OpBang
+	// OpJumpNotTruthy jumps if the last element in the stack is not true
+	OpJumpNotTruthy
+	// OpJump jumps to the desired location
+	OpJump
 )
 
 // Definition is the definition of a operand
@@ -45,17 +53,21 @@ type Definition struct {
 
 // definitions of operands
 var definitions = map[Opcode]*Definition{
-	OpConstant:    {"OpConstant", []int{2}},
-	OpAdd:         {"OpAdd", []int{}},
-	OpPop:         {"OpPop", []int{}},
-	OpSub:         {"OpSub", []int{}},
-	OpDiv:         {"OpDiv", []int{}},
-	OpMul:         {"OpMul", []int{}},
-	OpTrue:        {"OpTrue", []int{}},
-	OpFalse:       {"OpFalse", []int{}},
-	OpEqual:       {"OpEqual", []int{}},
-	OpNotEqual:    {"OpNotEqual", []int{}},
-	OpGreaterThan: {"OpGreaterThan", []int{}},
+	OpConstant:      {"OpConstant", []int{2}},
+	OpAdd:           {"OpAdd", []int{}},
+	OpPop:           {"OpPop", []int{}},
+	OpSub:           {"OpSub", []int{}},
+	OpDiv:           {"OpDiv", []int{}},
+	OpMul:           {"OpMul", []int{}},
+	OpTrue:          {"OpTrue", []int{}},
+	OpFalse:         {"OpFalse", []int{}},
+	OpEqual:         {"OpEqual", []int{}},
+	OpNotEqual:      {"OpNotEqual", []int{}},
+	OpGreaterThan:   {"OpGreaterThan", []int{}},
+	OpMinus:         {"OpMinus", []int{}},
+	OpBang:          {"OpBang", []int{}},
+	OpJumpNotTruthy: {"OpJumpNotTruthy", []int{2}},
+	OpJump:          {"OpJump", []int{2}},
 }
 
 // Lookup an operand in the definition table

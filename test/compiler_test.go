@@ -26,6 +26,15 @@ type compilerTestCase struct {
 func BenchmarkIntegerArithmetic(t *testing.B) {
 	tests := []compilerTestCase{
 		{
+			input:             "-1",
+			expectedConstants: []interface{}{1},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpMinus),
+				code.Make(code.OpPop),
+			},
+		},
+		{
 			input:             "1 + 2",
 			expectedConstants: []interface{}{1, 2},
 			expectedInstructions: []code.Instructions{
@@ -83,6 +92,15 @@ func BenchmarkIntegerArithmetic(t *testing.B) {
 
 func BenchmarkBooleanExpressions(t *testing.B) {
 	tests := []compilerTestCase{
+		{
+			input:             "!true",
+			expectedConstants: []interface{}{},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpTrue),
+				code.Make(code.OpBang),
+				code.Make(code.OpPop),
+			},
+		},
 		{
 			input:             "true",
 			expectedConstants: []interface{}{},
@@ -324,4 +342,31 @@ func BenchmarkCompile(b *testing.B) {
 	parsed := parse("3 + 3")
 	c := compiler.New()
 	c.Compile(parsed)
+}
+
+func BenchmarkConditionals(t *testing.B) {
+	tests := []compilerTestCase{
+		{
+			input: `
+					if (true) { 10 }; 3333;
+					`,
+			expectedConstants: []interface{}{10, 3333},
+			expectedInstructions: []code.Instructions{
+				// 0000
+				code.Make(code.OpTrue),
+				// 0001
+				code.Make(code.OpJumpNotTruthy, 7),
+				// 0004
+				code.Make(code.OpConstant, 0),
+				// 0007
+				code.Make(code.OpPop),
+				// 0008
+				code.Make(code.OpConstant, 1),
+				// 0011
+				code.Make(code.OpPop),
+			},
+		},
+	}
+
+	runCompilerTests(t, tests)
 }

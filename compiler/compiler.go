@@ -7,23 +7,78 @@ import (
 	"xlang/object"
 )
 
+// EmittedInstruction Keeps track of an emitted instruction
+type EmittedInstruction struct {
+	Opcode   code.Opcode
+	Position int
+}
+
 // Compiler contains the instructions and constants
 type Compiler struct {
-	instructions code.Instructions
-	constants    []object.Object
+	instructions        code.Instructions
+	constants           []object.Object
+	lastInstruction     EmittedInstruction
+	previousInstruction EmittedInstruction
 }
 
 // New returns a new compiler
 func New() *Compiler {
 	return &Compiler{
-		instructions: code.Instructions{},
-		constants:    []object.Object{},
+		instructions:        code.Instructions{},
+		constants:           []object.Object{},
+		lastInstruction:     EmittedInstruction{},
+		previousInstruction: EmittedInstruction{},
 	}
+}
+
+func (c *Compiler) setLastInstruction(op code.Opcode, pos int) {
+	previous := c.lastInstruction
+	last := EmittedInstruction{Opcode: op, Position: pos}
+
+	c.previousInstruction = previous
+	c.lastInstruction = last
+}
+
+func (c *Compiler) replaceInstruction(pos int, newInstruction []byte) {
+	for i, insByte := range newInstruction {
+		c.instructions[i+pos] = insByte
+	}
+}
+
+func (c *Compiler) changeOperand(opPos, operand int) {
+	op := code.Opcode(c.instructions[opPos])
+	newInstruction := code.Make(op, operand)
+	c.replaceInstruction(opPos, newInstruction)
 }
 
 // Compile saves in the compiler the instructions that the ast node produces
 func (c *Compiler) Compile(node ast.Node) error {
 	switch node := node.(type) {
+	case *ast.IfExpression:
+		{
+			err := c.Compile(node.Condition)
+			if err != nil {
+				return err
+			}
+			pos := c.emit(code.OpJumpNotTruthy, 9999)
+			err = c.Compile(node.Consequence)
+			if err != nil {
+				return err
+			}
+			if c.lastInstruction.Opcode == code.OpPop {
+				c.instructions = c.instructions[:c.lastInstruction.Position]
+				c.lastInstruction = c.previousInstruction
+			}
+			c.changeOperand(pos, len(c.instructions))
+		}
+	case *ast.BlockStatement:
+		{
+			for _, s := range node.Statements {
+				if err := c.Compile(s); err != nil {
+					return err
+				}
+			}
+		}
 	case *ast.Program:
 		{
 			for _, s := range node.Statements {
@@ -31,6 +86,20 @@ func (c *Compiler) Compile(node ast.Node) error {
 				if err != nil {
 					return err
 				}
+			}
+		}
+	case *ast.PrefixExpression:
+		{
+			if err := c.Compile(node.Right); err != nil {
+				return err
+			}
+			switch node.Operator {
+			case "!":
+				c.emit(code.OpBang)
+			case "-":
+				c.emit(code.OpMinus)
+			default:
+				return fmt.Errorf("unknown prefix operator: %s", node.Operator)
 			}
 		}
 	case *ast.ExpressionStatement:
@@ -103,6 +172,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 func (c *Compiler) emit(op code.Opcode, operands ...int) int {
 	ins := code.Make(op, operands...)
 	pos := c.addInstruction(ins)
+	c.setLastInstruction(op, pos)
 	return pos
 }
 
