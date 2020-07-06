@@ -2,6 +2,7 @@ package compiler
 
 import (
 	"fmt"
+	"sort"
 	"xlang/ast"
 	"xlang/code"
 	"xlang/object"
@@ -19,6 +20,7 @@ type Compiler struct {
 	constants           []object.Object
 	lastInstruction     EmittedInstruction
 	previousInstruction EmittedInstruction
+	symbolTable         *SymbolTable
 }
 
 // New returns a new compiler
@@ -28,7 +30,16 @@ func New() *Compiler {
 		constants:           []object.Object{},
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
+		symbolTable:         NewSymbolTable(),
 	}
+}
+
+// NewWithState returns a new compiler with a symbol table or constants inserted already
+func NewWithState(s *SymbolTable, constants []object.Object) *Compiler {
+	compiler := New()
+	compiler.symbolTable = s
+	compiler.constants = constants
+	return compiler
 }
 
 func (c *Compiler) setLastInstruction(op code.Opcode, pos int) {
@@ -54,6 +65,70 @@ func (c *Compiler) changeOperand(opPos, operand int) {
 // Compile saves in the compiler the instructions that the ast node produces
 func (c *Compiler) Compile(node ast.Node) error {
 	switch node := node.(type) {
+	case *ast.IndexExpression:
+		{
+			if err := c.Compile(node.Left); err != nil {
+				return err
+			}
+			if err := c.Compile(node.Right); err != nil {
+				return err
+			}
+			c.emit(code.OpIndex)
+		}
+	case *ast.HashLiteral:
+		{
+			keys := make([]ast.Expression, 0, len(node.Pairs))
+			for k := range node.Pairs {
+				keys = append(keys, k)
+			}
+			// Make a consistent order in keys
+			sort.Slice(keys, func(i, j int) bool {
+				return keys[i].String() < keys[j].String()
+			})
+			for _, key := range keys {
+				value := node.Pairs[key]
+				err := c.Compile(key)
+				if err != nil {
+					return err
+				}
+				errVal := c.Compile(value)
+				if errVal != nil {
+					return errVal
+				}
+			}
+			c.emit(code.OpHash, len(node.Pairs)*2)
+		}
+	case *ast.ArrayLiteral:
+		{
+			for _, exp := range node.Elements {
+				if err := c.Compile(exp); err != nil {
+					return err
+				}
+			}
+			c.emit(code.OpArray, len(node.Elements))
+		}
+	case *ast.StringLiteral:
+		{
+			str := node.Value
+			pos := c.addConstant(&object.String{Value: str})
+			c.emit(code.OpConstant, pos)
+		}
+	case *ast.Identifier:
+		{
+			symbol, ok := c.symbolTable.Resolve(node.Value)
+			if !ok {
+				return fmt.Errorf("undefined variable=%s", node.Value)
+			}
+			c.emit(code.OpGetGlobal, symbol.Index)
+		}
+	case *ast.LetStatement:
+		{
+			if err := c.Compile(node.Value); err != nil {
+				return err
+			}
+			symbol := c.symbolTable.Define(node.Name.Value)
+			c.emit(code.OpSetGlobal, symbol.Index)
+		}
 	case *ast.IfExpression:
 		{
 			err := c.Compile(node.Condition)
@@ -204,6 +279,7 @@ func (c *Compiler) addConstant(obj object.Object) int {
 type Bytecode struct {
 	Instructions code.Instructions
 	Constants    []object.Object
+	Table        *SymbolTable
 }
 
 // Bytecode returns the bytecode of the compiler
@@ -211,5 +287,6 @@ func (c *Compiler) Bytecode() *Bytecode {
 	return &Bytecode{
 		Instructions: c.instructions,
 		Constants:    c.constants,
+		Table:        c.symbolTable,
 	}
 }

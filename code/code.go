@@ -45,6 +45,16 @@ const (
 	OpJump
 	// OpNull tells the VM to put Null in the stack
 	OpNull
+	// OpGetGlobal tells the VM to retrieve a global variable
+	OpGetGlobal
+	// OpSetGlobal tells the VM to set the last variable pushed into the stack as a global variable
+	OpSetGlobal
+	// OpArray tells the VM to add X elements from the stack into an array
+	OpArray
+	// OpHash tells the vm to add X key and values that are inside the stack into a hashmap
+	OpHash
+	// OpIndex tells the vm to add into the stack an element of the indexed
+	OpIndex
 )
 
 // Definition is the definition of a operand
@@ -71,6 +81,11 @@ var definitions = map[Opcode]*Definition{
 	OpJumpNotTruthy: {"OpJumpNotTruthy", []int{2}},
 	OpJump:          {"OpJump", []int{2}},
 	OpNull:          {"OpNull", []int{}},
+	OpSetGlobal:     {"OpSetGlobal", []int{2}},
+	OpGetGlobal:     {"OpGetGlobal", []int{2}},
+	OpArray:         {"OpArray", []int{2}},
+	OpHash:          {"OpHash", []int{2}},
+	OpIndex:         {"OpIndex", []int{}},
 }
 
 // Lookup an operand in the definition table

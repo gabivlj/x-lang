@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"xlang/compiler"
 	"xlang/lexer"
+	"xlang/object"
 	"xlang/parser"
 	"xlang/vm"
 )
@@ -25,7 +26,9 @@ func StartVM(in io.Reader, out io.Writer) {
 	Made by Gabriel Villalonga in Golang. Followed a book and made research to make an interpreter.
 	`)
 	scanner := bufio.NewScanner(in)
-
+	globals := make([]object.Object, vm.GlobalsSize)
+	constants := []object.Object{}
+	currentSymbolTable := compiler.NewSymbolTable()
 	for {
 		fmt.Fprintf(out, PROMPT)
 		scanned := scanner.Scan()
@@ -46,14 +49,16 @@ func StartVM(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		comp := compiler.New()
+		comp := compiler.NewWithState(currentSymbolTable, constants)
 		err := comp.Compile(program)
 		if err != nil {
 			fmt.Fprintf(out, "Woops! Compilation failed:\n %s\n", err)
 			continue
 		}
-
-		machine := vm.New(comp.Bytecode())
+		bytecode := comp.Bytecode()
+		machine := vm.NewWithGlobalsStore(bytecode, globals)
+		constants = bytecode.Constants
+		currentSymbolTable = bytecode.Table
 		err = machine.Run()
 		if err != nil {
 			fmt.Fprintf(out, "Woops! Executing bytecode failed:\n %s\n", err)
