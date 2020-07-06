@@ -20,8 +20,11 @@ type VM struct {
 	instructions code.Instructions
 	stack        []object.Object
 	// Points to the next value. Top of stack is stack[sp-1]
-	sp int
+	sp      int
+	globals []object.Object
 }
+
+const GlobalsSize = 65536
 
 // New returns a new VM from a bytecode
 func New(bytecode *compiler.Bytecode) *VM {
@@ -30,7 +33,15 @@ func New(bytecode *compiler.Bytecode) *VM {
 		constants:    bytecode.Constants,
 		stack:        make([]object.Object, StackSize),
 		sp:           0,
+		globals:      make([]object.Object, GlobalsSize),
 	}
+}
+
+// NewWithGlobalsStore .
+func NewWithGlobalsStore(bytecode *compiler.Bytecode, s []object.Object) *VM {
+	vm := New(bytecode)
+	vm.globals = s
+	return vm
 }
 
 // StackTop returns the top element on the stack
@@ -56,6 +67,100 @@ func (vm *VM) Run() error {
 	for ip := 0; ip < len(vm.instructions); ip++ {
 		op := code.Opcode(vm.instructions[ip])
 		switch op {
+		case code.OpIndex:
+			{
+				index := vm.pop()
+				element := vm.pop()
+				switch element := element.(type) {
+				case *object.Array:
+					{
+						integerObject, ok := index.(*object.Integer)
+						if !ok {
+							return fmt.Errorf("expected integer got=%s", index.Type())
+						}
+						var objectToPush object.Object
+						if integerObject.Value < 0 || integerObject.Value >= int64(len(element.Elements)) {
+							objectToPush = Null
+						} else {
+							objectToPush = element.Elements[integerObject.Value]
+						}
+						if err := vm.push(objectToPush); err != nil {
+							return err
+						}
+					}
+				case *object.HashMap:
+					{
+						hashable, ok := index.(object.Hashable)
+						var key object.HashKey
+						if !ok {
+							key = (&object.String{Value: index.Inspect()}).HashKey()
+						} else {
+							key = hashable.HashKey()
+						}
+						pair, ok := element.Pairs[key]
+						if !ok {
+							if err := vm.push(Null); err != nil {
+								return err
+							}
+							continue
+						}
+						if err := vm.push(pair.Value); err != nil {
+							return err
+						}
+					}
+				default:
+					return fmt.Errorf("invalid index operation on %s", element.Type())
+				}
+			}
+		case code.OpHash:
+			{
+				lenOfHash := int(binary.BigEndian.Uint16(vm.instructions[ip+1:]))
+				ip += 2
+				elements := vm.stack[vm.sp-lenOfHash : vm.sp]
+				hash := make(map[object.HashKey]object.HashPair, len(elements)/2)
+				for i := 0; i < len(elements); i += 2 {
+					switch key := elements[i].(type) {
+					case object.Hashable:
+						hashed := key.HashKey()
+						hash[hashed] = object.HashPair{Value: elements[i+1], Key: elements[i]}
+					default:
+						str := key.Inspect()
+						obj := (&object.String{Value: str}).HashKey()
+						hash[obj] = object.HashPair{Value: elements[i+1], Key: elements[i]}
+					}
+				}
+				if err := vm.push(&object.HashMap{Pairs: hash}); err != nil {
+					return err
+				}
+			}
+		case code.OpArray:
+			{
+				lenOfArray := int(binary.BigEndian.Uint16(vm.instructions[ip+1:]))
+				ip += 2
+				elements := vm.stack[vm.sp-lenOfArray : vm.sp]
+				if err := vm.push(&object.Array{Elements: elements}); err != nil {
+					return err
+				}
+			}
+		case code.OpGetGlobal:
+			{
+				pos := int(binary.BigEndian.Uint16(vm.instructions[ip+1:]))
+				ip += 2
+				obj := vm.globals[pos]
+				if err := vm.push(obj); err != nil {
+					return err
+				}
+			}
+		case code.OpSetGlobal:
+			{
+				pos := int(binary.BigEndian.Uint16(vm.instructions[ip+1:]))
+				ip += 2
+				if pos >= GlobalsSize {
+					return fmt.Errorf("There can't be more than %d global variables", pos)
+				}
+				element := vm.pop()
+				vm.globals[pos] = element
+			}
 		case code.OpJump:
 			{
 				pos := int(binary.BigEndian.Uint16(vm.instructions[ip+1:]))
@@ -176,6 +281,16 @@ func (vm *VM) Run() error {
 							return fmt.Errorf("expected %s, got: %s", right.Type(), left.Type())
 						}
 						if err := vm.push(&object.Integer{Value: leftObject.Value + rightObject.Value}); err != nil {
+							return err
+						}
+					}
+				case *object.String:
+					{
+						leftStr, ok := left.(*object.String)
+						if !ok {
+							return fmt.Errorf("expected %s, got: %s", right.Type(), left.Type())
+						}
+						if err := vm.push(&object.String{Value: leftStr.Value + rightObject.Value}); err != nil {
 							return err
 						}
 					}
