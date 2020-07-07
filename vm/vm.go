@@ -16,24 +16,33 @@ var Null = &object.Null{}
 
 // VM holds all the Virtual Machine information and logic
 type VM struct {
-	constants    []object.Object
-	instructions code.Instructions
-	stack        []object.Object
+	constants []object.Object
+
+	stack []object.Object
 	// Points to the next value. Top of stack is stack[sp-1]
-	sp      int
-	globals []object.Object
+	sp          int
+	globals     []object.Object
+	frames      []*Frame
+	framesIndex int
 }
 
 const GlobalsSize = 65536
+const MaxFrames = 65536
 
 // New returns a new VM from a bytecode
 func New(bytecode *compiler.Bytecode) *VM {
+	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions}
+	mainFrame := NewFrame(mainFn, 0)
+
+	frames := make([]*Frame, MaxFrames)
+	frames[0] = mainFrame
 	return &VM{
-		instructions: bytecode.Instructions,
-		constants:    bytecode.Constants,
-		stack:        make([]object.Object, StackSize),
-		sp:           0,
-		globals:      make([]object.Object, GlobalsSize),
+		constants:   bytecode.Constants,
+		stack:       make([]object.Object, StackSize),
+		sp:          0,
+		globals:     make([]object.Object, GlobalsSize),
+		frames:      frames,
+		framesIndex: 1,
 	}
 }
 
@@ -64,8 +73,15 @@ func isTruthy(o object.Object) bool {
 
 // Run runs the VM
 func (vm *VM) Run() error {
-	for ip := 0; ip < len(vm.instructions); ip++ {
-		op := code.Opcode(vm.instructions[ip])
+	var ip int
+	var ins code.Instructions
+	var op code.Opcode
+
+	for vm.currentFrame().ip < len(vm.currentFrame().Instructions())-1 {
+		vm.currentFrame().ip++
+		ip = vm.currentFrame().ip
+		ins = vm.currentFrame().Instructions()
+		op = code.Opcode(ins[ip])
 		switch op {
 		case code.OpIndex:
 			{
@@ -114,8 +130,8 @@ func (vm *VM) Run() error {
 			}
 		case code.OpHash:
 			{
-				lenOfHash := int(binary.BigEndian.Uint16(vm.instructions[ip+1:]))
-				ip += 2
+				lenOfHash := int(binary.BigEndian.Uint16(ins[ip+1:]))
+				vm.currentFrame().ip += 2
 				elements := vm.stack[vm.sp-lenOfHash : vm.sp]
 				hash := make(map[object.HashKey]object.HashPair, len(elements)/2)
 				for i := 0; i < len(elements); i += 2 {
@@ -135,8 +151,8 @@ func (vm *VM) Run() error {
 			}
 		case code.OpArray:
 			{
-				lenOfArray := int(binary.BigEndian.Uint16(vm.instructions[ip+1:]))
-				ip += 2
+				lenOfArray := int(binary.BigEndian.Uint16(ins[ip+1:]))
+				vm.currentFrame().ip += 2
 				elements := vm.stack[vm.sp-lenOfArray : vm.sp]
 				if err := vm.push(&object.Array{Elements: elements}); err != nil {
 					return err
@@ -144,17 +160,41 @@ func (vm *VM) Run() error {
 			}
 		case code.OpGetGlobal:
 			{
-				pos := int(binary.BigEndian.Uint16(vm.instructions[ip+1:]))
-				ip += 2
+				pos := int(binary.BigEndian.Uint16(ins[ip+1:]))
+				vm.currentFrame().ip += 2
 				obj := vm.globals[pos]
 				if err := vm.push(obj); err != nil {
 					return err
 				}
 			}
+
+		case code.OpReturn:
+			{
+				frame := vm.popFrame()
+				// Go to the starting point
+				vm.sp = frame.basePointer - 1
+				if err := vm.push(Null); err != nil {
+					return err
+				}
+			}
+
+		case code.OpReturnValue:
+			{
+				// Pop return value
+				returnValue := vm.pop()
+				// Pop the current frame (scope)
+				frame := vm.popFrame()
+				// Go to before we called the function
+				vm.sp = frame.basePointer - 1
+				err := vm.push(returnValue)
+				if err != nil {
+					return err
+				}
+			}
 		case code.OpSetGlobal:
 			{
-				pos := int(binary.BigEndian.Uint16(vm.instructions[ip+1:]))
-				ip += 2
+				pos := int(binary.BigEndian.Uint16(ins[ip+1:]))
+				vm.currentFrame().ip += 2
 				if pos >= GlobalsSize {
 					return fmt.Errorf("There can't be more than %d global variables", pos)
 				}
@@ -163,18 +203,45 @@ func (vm *VM) Run() error {
 			}
 		case code.OpJump:
 			{
-				pos := int(binary.BigEndian.Uint16(vm.instructions[ip+1:]))
+				pos := int(binary.BigEndian.Uint16(ins[ip+1:]))
 				ip = pos - 1
 			}
 		case code.OpJumpNotTruthy:
 			{
-				pos := int(binary.BigEndian.Uint16(vm.instructions[ip+1:]))
+				pos := int(binary.BigEndian.Uint16(ins[ip+1:]))
 				// Skip the 2 bytes of this operand
-				ip += 2
+				vm.currentFrame().ip += 2
 				condition := vm.pop()
 				if !isTruthy(condition) {
 					ip = pos - 1
 				}
+			}
+		case code.OpGetLocal:
+			{
+				localIndex := byte(ins[ip+1])
+				vm.currentFrame().ip++
+				frame := vm.currentFrame()
+				if err := vm.push(vm.stack[frame.basePointer+int(localIndex)]); err != nil {
+					return nil
+				}
+			}
+		case code.OpSetLocal:
+			{
+				localIndex := byte(ins[ip+1])
+				vm.currentFrame().ip++
+				frame := vm.currentFrame()
+				vm.stack[frame.basePointer+int(localIndex)] = vm.pop()
+			}
+		case code.OpCall:
+			{
+				fn, ok := vm.stack[vm.sp-1].(*object.CompiledFunction)
+				if !ok {
+					return fmt.Errorf("can't call expression, expected a function, got=%s", vm.stack[vm.sp-1].Type())
+				}
+				// Set the starting point for the function stack [..., fn, vm.sp..vm.sp+fn.NumLocals, stackOfTheFunction]
+				frame := NewFrame(fn, vm.sp)
+				vm.pushFrame(frame)
+				vm.sp = frame.basePointer + fn.NumLocals
 			}
 		case code.OpNull:
 			{
@@ -184,9 +251,8 @@ func (vm *VM) Run() error {
 			}
 		case code.OpConstant:
 			{
-				ip++
-				idx := binary.BigEndian.Uint16(vm.instructions[ip:])
-				ip++
+				idx := binary.BigEndian.Uint16(ins[ip+1:])
+				vm.currentFrame().ip += 2
 				if err := vm.push(vm.constants[idx]); err != nil {
 					return err
 				}
@@ -392,4 +458,20 @@ func (vm *VM) LastPoppedStackElem() object.Object {
 	// 	fmt.Println("res", obj.Inspect(), vm.sp)
 	// }
 	return vm.stack[vm.sp]
+}
+
+// Frame
+
+func (vm *VM) currentFrame() *Frame {
+	return vm.frames[vm.framesIndex-1]
+}
+
+func (vm *VM) pushFrame(f *Frame) {
+	vm.frames[vm.framesIndex] = f
+	vm.framesIndex++
+}
+
+func (vm *VM) popFrame() *Frame {
+	vm.framesIndex--
+	return vm.frames[vm.framesIndex]
 }

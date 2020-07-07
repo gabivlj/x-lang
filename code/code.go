@@ -55,6 +55,16 @@ const (
 	OpHash
 	// OpIndex tells the vm to add into the stack an element of the indexed
 	OpIndex
+	// OpCall tells the VM to call the function that is the last inserted element in the stack
+	OpCall
+	// OpReturnValue tells the VM to return from the function with a return value of the top of the stack
+	OpReturnValue
+	// OpReturn tells the VM to stop the execution of the current function returning Null
+	OpReturn
+	// OpGetLocal tells the VM to get a local variable
+	OpGetLocal
+	// OpSetLocal tells the VM to set a local variable
+	OpSetLocal
 )
 
 // Definition is the definition of a operand
@@ -86,6 +96,11 @@ var definitions = map[Opcode]*Definition{
 	OpArray:         {"OpArray", []int{2}},
 	OpHash:          {"OpHash", []int{2}},
 	OpIndex:         {"OpIndex", []int{}},
+	OpCall:          {"OpCall", []int{}},
+	OpReturnValue:   {"OpReturnValue", []int{}},
+	OpReturn:        {"OpReturn", []int{}},
+	OpGetLocal:      {"OpGetLocal", []int{1}},
+	OpSetLocal:      {"OpSetLocal", []int{1}},
 }
 
 // Lookup an operand in the definition table
@@ -119,6 +134,8 @@ func Make(op Opcode, operands ...int) []byte {
 		// [...offset, byte, byte]
 		case 2:
 			binary.BigEndian.PutUint16(instruction[offset:], uint16(o))
+		case 1:
+			instruction[offset] = byte(o)
 		}
 		offset += width
 	}
@@ -167,6 +184,10 @@ func (ins Instructions) String() string {
 
 func opToString(start, end, width int, ins Instructions) string {
 	switch width {
+	case 1:
+		{
+			return fmt.Sprintf(" %d", ins[start])
+		}
 	case 0:
 		{
 			return ""
