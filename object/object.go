@@ -27,6 +27,8 @@ const (
 	ArrayObject = "ARRAY"
 	// HashObject is a hashmap
 	HashObject = "HASH"
+	// CompiledFunctionObject is a function that stores instructions for the vm
+	CompiledFunctionObject
 )
 
 // Object is a xlang object.
