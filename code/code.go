@@ -96,11 +96,14 @@ var definitions = map[Opcode]*Definition{
 	OpArray:         {"OpArray", []int{2}},
 	OpHash:          {"OpHash", []int{2}},
 	OpIndex:         {"OpIndex", []int{}},
-	OpCall:          {"OpCall", []int{}},
-	OpReturnValue:   {"OpReturnValue", []int{}},
-	OpReturn:        {"OpReturn", []int{}},
-	OpGetLocal:      {"OpGetLocal", []int{1}},
-	OpSetLocal:      {"OpSetLocal", []int{1}},
+	// 1 being the number of arguments
+	OpCall:        {"OpCall", []int{1}},
+	OpReturnValue: {"OpReturnValue", []int{}},
+	OpReturn:      {"OpReturn", []int{}},
+	// The direction in the stack
+	OpGetLocal: {"OpGetLocal", []int{1}},
+	// Puts the current top element of the stack to the specified direction in the stack (initial:vm.sp + dir)
+	OpSetLocal: {"OpSetLocal", []int{1}},
 }
 
 // Lookup an operand in the definition table

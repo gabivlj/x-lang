@@ -7,8 +7,9 @@ import (
 
 // CompiledFunction stores Vm instructions
 type CompiledFunction struct {
-	Instructions code.Instructions
-	NumLocals    int
+	Instructions  code.Instructions
+	NumLocals     int
+	NumParameters int
 }
 
 // Type .

@@ -8,5 +8,6 @@ import (
 func main() {
 	// http.RunServer()
 
-	repl.StartVM(os.Stdin, os.Stdout)
+	// repl.StartVM(os.Stdin, os.Stdout)
+	repl.Start(os.Stdin, os.Stdout)
 }
