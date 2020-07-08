@@ -1,6 +1,6 @@
 ## Xlang
 
-It is a toy interpreter made while learning how to make one.
+It is a for fun interpreter with it's own compiler and VM. Done while reading books on how to make these :).
 
 For the moment it supports:
 
@@ -15,8 +15,7 @@ For the moment it supports:
 
 ## What's coming
 
-- More examples in the example folder :)
-- API Docs
+- VM and compiler!!!
 
 # Where can I use it?
 

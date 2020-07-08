@@ -168,6 +168,9 @@ func (e *Evaluator) applyFunction(fn object.Object, params []object.Object) obje
 			return object.NewError("Expected function, got %s instead", fn.Type())
 		}
 		fnRes := builtin.Fn(params...)
+		if fnRes == nil {
+			return NULL
+		}
 		if fnRes.Type() == object.LogObject {
 			log := fnRes.(*object.Log)
 			log.Line = e.Line

@@ -1,59 +1,27 @@
 package eval
 
 import (
-	"fmt"
 	"xlang/object"
 )
 
 var builtins = map[string]*object.Builtin{
-	"len": {
-		Fn: Len,
-	},
+	"len": object.GetBuiltinByName("len"),
 
-	"push": {
-		Fn: Push,
-	},
+	"push": object.GetBuiltinByName("push"),
 
-	// TODO: Implement first, last, pop, unshift, shift, for_each, for, map, reduce
-	"pop": {
-		Fn: Pop,
-	},
-	"shift": {
-		Fn: Shift,
-	},
-	"unshift": {
-		Fn: Unshift,
-	},
-	"first": {
-		Fn: First,
-	},
-	"set": {
-		Fn: Set,
-	},
-	"log": {
-		Fn: func(args ...object.Object) object.Object {
-			for _, arg := range args {
-				fmt.Println("QIE ES", arg.Inspect())
-			}
-			if len(args) == 0 {
-				return &object.Log{Message: NULL}
-			}
-			if len(args) == 1 {
-				return &object.Log{Message: args[0]}
-			}
-			arr := object.Array{Elements: make([]object.Object, 0, len(args))}
-			for _, arg := range args {
-				arr.Elements = append(arr.Elements, arg)
-			}
-			return &object.Log{Message: &arr}
-		},
-	},
+	"pop": object.GetBuiltinByName("pop"),
 
-	"keys": {
-		Fn: Keys,
-	},
+	"shift": object.GetBuiltinByName("shift"),
 
-	"delete": {
-		Fn: Delete,
-	},
+	"unshift": object.GetBuiltinByName("unshift"),
+
+	"first": object.GetBuiltinByName("first"),
+
+	"set": object.GetBuiltinByName("set"),
+
+	"log": object.GetBuiltinByName("log"),
+
+	"keys": object.GetBuiltinByName("keys"),
+
+	"delete": object.GetBuiltinByName("delete"),
 }

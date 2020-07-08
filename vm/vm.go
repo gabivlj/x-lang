@@ -234,14 +234,22 @@ func (vm *VM) Run() error {
 			}
 		case code.OpCall:
 			{
-				fn, ok := vm.stack[vm.sp-1].(*object.CompiledFunction)
+				nOfParameters := int(byte(ins[ip+1]))
+				fn, ok := vm.stack[vm.sp-1-nOfParameters].(*object.CompiledFunction)
+				vm.currentFrame().ip++
 				if !ok {
-					return fmt.Errorf("can't call expression, expected a function, got=%s", vm.stack[vm.sp-1].Type())
+					return fmt.Errorf("can't call expression, expected a function, got=%s", vm.stack[vm.sp-1-nOfParameters].Type())
 				}
-				// Set the starting point for the function stack [..., fn, vm.sp..vm.sp+fn.NumLocals, stackOfTheFunction]
-				frame := NewFrame(fn, vm.sp)
+				if fn.NumParameters != nOfParameters {
+					return fmt.Errorf("wrong number of parameters, expected=%d, got=%d", fn.NumParameters, nOfParameters)
+				}
+
+				// Set the basePointer to where the function next pointer is located
+				// [..., fn, args[basePointer], locals, ...]
+				frame := NewFrame(fn, vm.sp-nOfParameters)
 				vm.pushFrame(frame)
-				vm.sp = frame.basePointer + fn.NumLocals
+				// Set the starting point for the function stack [..., fn, vm.sp+fn.NumLocals, stackOfTheFunction]
+				vm.sp = frame.basePointer + fn.NumLocals // NumLocals is = the number of local variables + nArguments
 			}
 		case code.OpNull:
 			{
