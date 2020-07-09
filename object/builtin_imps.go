@@ -72,7 +72,7 @@ func Shift(args ...Object) Object {
 		return NewError("Unexpected type for shift(); got %s", args[0].Type())
 	}
 	if len(arr.Elements) == 0 {
-		return arr
+		return nil
 	}
 	return &Array{Elements: arr.Elements[1:]}
 }
@@ -206,4 +206,19 @@ func GetBuiltinByName(name string) *Builtin {
 		}
 	}
 	return nil
+}
+
+// Last returns the last element of an array
+func Last(args ...Object) Object {
+	if len(args) != 1 {
+		return NewError("Error: Expected 1 argument on keys() but got %d", len(args))
+	}
+	arr, k := args[0].(*Array)
+	if !k {
+		return NewError("Error: Expected Array as first argument on last() but got %s", args[0].Type())
+	}
+	if len(arr.Elements) == 0 {
+		return nil
+	}
+	return arr.Elements[len(arr.Elements)-1]
 }

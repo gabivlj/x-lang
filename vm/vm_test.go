@@ -45,10 +45,25 @@ func runVMTests(t *testing.B, tests []vmTestCase, printStackTraceAndStop ...bool
 		if err != nil {
 			t.Fatalf("compile error: %s", err.Error())
 		}
+		// for i, constant := range comp.Bytecode().Constants {
+		// 	fmt.Printf("CONSTANT %d %p (%T):\n", i, constant, constant)
+
+		// 	switch constant := constant.(type) {
+		// 	case *object.CompiledFunction:
+		// 		fmt.Printf(" Instructions:\n%s", constant.Instructions)
+		// 	case *object.Integer:
+		// 		fmt.Printf(" Value: %d\n", constant.Value)
+		// 	}
+
+		// 	fmt.Printf("\n")
+		// }
 		vm := New(comp.Bytecode())
 		err = vm.Run()
 		if err != nil {
-			t.Fatalf("vm error: %s", err)
+			t.Errorf("vm error: %s", err)
+			if len(printStackTraceAndStop) > 0 && t.Failed() && printStackTraceAndStop[0] {
+				t.Fatal("Failed on: ", tt.input)
+			}
 		}
 		stackElem := vm.LastPoppedStackElem()
 		if stackElem == nil {
@@ -88,6 +103,16 @@ func testExpectedObject(
 		err := testStringObject(expected, actual)
 		if err != nil {
 			t.Errorf("testStringObject failed: %s", err)
+		}
+	case *object.Error:
+		errObj, ok := actual.(*object.Error)
+		if !ok {
+			t.Errorf("object is not Error: %T (%+v)", actual, actual)
+			return
+		}
+		if errObj.Message != expected.Message {
+			t.Errorf("wrong error message. expected=%q, got=%q",
+				expected.Message, errObj.Message)
 		}
 	case map[object.HashKey]int64:
 		hash, ok := actual.(*object.HashMap)
@@ -545,4 +570,205 @@ func BenchmarkCallingFunctionsWithWrongArguments(t *testing.B) {
 			t.Fatalf("wrong VM error: want=%q, got=%q", tt.expected, err)
 		}
 	}
+}
+
+func BenchmarkBuiltinFunctions(t *testing.B) {
+	tests := []vmTestCase{
+		{`len("")`, 0},
+		{`len("four")`, 4},
+		{`len("hello world")`, 11},
+		{
+			`len(1)`,
+			&object.Error{
+				Message: "Unexpected type: INTEGER for function len()",
+			},
+		},
+		{`len("one", "two")`,
+			&object.Error{
+				Message: "Expected 1 argument, got 2",
+			},
+		},
+		{`len([1, 2, 3])`, 3},
+		{`len([])`, 0},
+		{`push(["hello"], "world!")`, &object.Array{Elements: []object.Object{&object.String{Value: "hello"}, &object.String{Value: "world!"}}}},
+		{`first([1, 2, 3])`, 1},
+		{`first([])`, Null},
+		{`first(1)`,
+			&object.Error{
+				Message: "Unexpected type for first(); got INTEGER",
+			},
+		},
+		{`last([1, 2, 3])`, 3},
+		{`last([])`, Null},
+		{`last(1)`,
+			&object.Error{
+				Message: "Error: Expected Array as first argument on last() but got INTEGER",
+			},
+		},
+		{`shift([1, 2, 3])`, []int{2, 3}},
+		{`shift([])`, Null},
+		{`push([], 1)`, []int{1}},
+		{`push(1, 1)`,
+			&object.Error{
+				Message: "Unexpected type for push(); got INTEGER",
+			},
+		},
+	}
+
+	runVMTests(t, tests, true)
+}
+
+func BenchmarkClosures(t *testing.B) {
+	tests := []vmTestCase{
+		{
+			input: `
+			let newClosure = fn(a) {
+					fn() { a; };
+			};
+			let closure = newClosure(99);
+			closure();
+			`,
+			expected: 99,
+		},
+		{
+			input: `
+	let newAdder = fn(a, b) {
+			fn(c) { a + b + c };
+	};
+	let adder = newAdder(1, 2);
+	adder(8);
+	`,
+			expected: 11,
+		},
+		{
+			input: `
+	let newAdder = fn(a, b) {
+			let c = a + b;
+			fn(d) { c + d };
+	};
+	let adder = newAdder(1, 2);
+	adder(8);
+	`,
+			expected: 11,
+		},
+		{
+			input: `
+	let newAdderOuter = fn(a, b) {
+			let c = a + b;
+			fn(d) {
+					let e = d + c;
+					fn(f) { e + f; };
+			};
+	};
+	let newAdderInner = newAdderOuter(1, 2)
+	let adder = newAdderInner(3);
+	adder(8);
+	`,
+			expected: 14,
+		},
+		{
+			input: `
+	let a = 1;
+	let newAdderOuter = fn(b) {
+			fn(c) {
+					fn(d) { a + b + c + d };
+			};
+	};
+	let newAdderInner = newAdderOuter(2)
+	let adder = newAdderInner(3);
+	adder(8);
+	`,
+			expected: 14,
+		},
+		{
+			input: `
+	let newClosure = fn(a, b) {
+			let one = fn() { a; };
+			let two = fn() { b; };
+			fn() { one() + two(); };
+	};
+	let closure = newClosure(9, 90);
+	closure();
+	`,
+			expected: 99,
+		},
+	}
+
+	runVMTests(t, tests)
+}
+
+func BenchmarkRecursiveFunctions(t *testing.B) {
+	tests := []vmTestCase{
+		{
+			input: `
+				let countDown = fn(x) {
+						if (x == 0) {
+								return 0;
+						} else {
+								countDown(x - 1);
+						}
+				};
+				countDown(1);
+				`,
+			expected: 0,
+		},
+		{
+			input: `
+		let countDown = fn(x) {
+				if (x == 0) {
+						return 0;
+				} else {
+						countDown(x - 1);
+				}
+		};
+		let wrapper = fn() {
+				countDown(1);
+		};
+		wrapper();
+		`,
+			expected: 0,
+		},
+		{
+			input: `
+	let wrapper = fn() {
+			let countDown = fn(x) {
+					if (x == 0) {
+							return 2;
+					} else {
+							countDown(x - 1);
+					}
+			};
+			countDown(1);
+	};
+	wrapper();
+	`,
+			expected: 2,
+		},
+	}
+
+	runVMTests(t, tests)
+}
+
+func BenchmarkRecursiveFibonacci(t *testing.B) {
+	tests := []vmTestCase{
+		{
+			input: `
+			let fibonacci = fn(x) {
+					if (x == 0) {
+							return 0;
+					} else {
+							if (x == 1) {
+									return 1;
+							} else {
+									return fibonacci(x - 1) + fibonacci(x - 2);
+							}
+					}
+			};
+			fibonacci(15);
+			`,
+			expected: 610,
+		},
+	}
+
+	runVMTests(t, tests)
 }

@@ -29,27 +29,31 @@ var builtins = []struct {
 	{"set",
 		&Builtin{Fn: Set},
 	},
-	//  {
-	// 	"log",
-	// 	&Builtin{
-	// 		Fn: func(args ...object.Object) object.Object {
-	// 			for _, arg := range args {
-	// 				arg.Inspect())fmt.Println("QIE ES",
-	// 			}
-	// 			if len(args) == 0 {
-	// 				return &object.Log{Message: NULL}
-	// 			}
-	// 			if len(args) == 1 {
-	// 				return &object.Log{Message: args[0]}
-	// 			}
-	// 			arr := object.Array{Elements: make([]object.Object, 0, len(args))}
-	// 			for _, arg := range args {
-	// 				arr.Elements = append(arr.Elements, arg)
-	// 			}
-	// 			return &object.Log{Message: &arr}
-	// 		}
-	// 	},
-	// },
+	{
+		"last",
+		&Builtin{Fn: Last},
+	},
+	{
+		"log",
+		&Builtin{
+			Fn: func(args ...Object) Object {
+				for _, arg := range args {
+					arg.Inspect()
+				}
+				if len(args) == 0 {
+					return &Log{Message: nil}
+				}
+				if len(args) == 1 {
+					return &Log{Message: args[0]}
+				}
+				arr := Array{Elements: make([]Object, 0, len(args))}
+				for _, arg := range args {
+					arr.Elements = append(arr.Elements, arg)
+				}
+				return &Log{Message: &arr}
+			},
+		},
+	},
 
 	{"keys",
 		&Builtin{Fn: Keys},
@@ -58,4 +62,12 @@ var builtins = []struct {
 	{"delete",
 		&Builtin{Fn: Delete},
 	},
+}
+
+// GetBuiltins objects
+func GetBuiltins() []struct {
+	Name    string
+	Builtin *Builtin
+} {
+	return builtins
 }

@@ -28,7 +28,9 @@ const (
 	// HashObject is a hashmap
 	HashObject = "HASH"
 	// CompiledFunctionObject is a function that stores instructions for the vm
-	CompiledFunctionObject
+	CompiledFunctionObject = "COMPILED FUNCTION"
+	// ClosureObject is a function that stores a function and the freevariables
+	ClosureObject = "CLOSURE"
 )
 
 // Object is a xlang object.

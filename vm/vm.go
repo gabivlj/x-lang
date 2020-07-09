@@ -32,7 +32,8 @@ const MaxFrames = 65536
 // New returns a new VM from a bytecode
 func New(bytecode *compiler.Bytecode) *VM {
 	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions}
-	mainFrame := NewFrame(mainFn, 0)
+	mainClosure := &object.Closure{Fn: mainFn}
+	mainFrame := NewFrame(mainClosure, 0)
 
 	frames := make([]*Frame, MaxFrames)
 	frames[0] = mainFrame
@@ -83,6 +84,18 @@ func (vm *VM) Run() error {
 		ins = vm.currentFrame().Instructions()
 		op = code.Opcode(ins[ip])
 		switch op {
+		case code.OpGetFree:
+			{
+				objects := vm.currentFrame().fn.Free
+				idx := int(ins[ip+1])
+				vm.currentFrame().ip++
+				if idx >= len(objects) || idx < 0 {
+					return fmt.Errorf("free object not defined, problem with the compiler code. index=%d", idx)
+				}
+				if err := vm.push(objects[idx]); err != nil {
+					return err
+				}
+			}
 		case code.OpIndex:
 			{
 				index := vm.pop()
@@ -153,8 +166,20 @@ func (vm *VM) Run() error {
 			{
 				lenOfArray := int(binary.BigEndian.Uint16(ins[ip+1:]))
 				vm.currentFrame().ip += 2
-				elements := vm.stack[vm.sp-lenOfArray : vm.sp]
+				var elements []object.Object = make([]object.Object, lenOfArray)
+				copy(elements, vm.stack[vm.sp-lenOfArray:vm.sp])
+				vm.sp = vm.sp - lenOfArray
 				if err := vm.push(&object.Array{Elements: elements}); err != nil {
+					return err
+				}
+
+			}
+		case code.OpGetBuiltin:
+			{
+				pos := int(ins[ip+1])
+				vm.currentFrame().ip++
+				builtin := object.GetBuiltins()[pos]
+				if err := vm.push(builtin.Builtin); err != nil {
 					return err
 				}
 			}
@@ -204,7 +229,7 @@ func (vm *VM) Run() error {
 		case code.OpJump:
 			{
 				pos := int(binary.BigEndian.Uint16(ins[ip+1:]))
-				ip = pos - 1
+				vm.currentFrame().ip = pos - 1
 			}
 		case code.OpJumpNotTruthy:
 			{
@@ -213,7 +238,7 @@ func (vm *VM) Run() error {
 				vm.currentFrame().ip += 2
 				condition := vm.pop()
 				if !isTruthy(condition) {
-					ip = pos - 1
+					vm.currentFrame().ip = pos - 1
 				}
 			}
 		case code.OpGetLocal:
@@ -232,16 +257,49 @@ func (vm *VM) Run() error {
 				frame := vm.currentFrame()
 				vm.stack[frame.basePointer+int(localIndex)] = vm.pop()
 			}
+		case code.OpClosure:
+			{
+				indexFn := int(binary.BigEndian.Uint16(ins[ip+1:]))
+				nOfFreeVariables := int(ins[ip+3])
+				vm.currentFrame().ip += 3
+				if err := vm.pushClosure(indexFn, nOfFreeVariables); err != nil {
+					return err
+				}
+			}
+		case code.OpCurrentClosure:
+			{
+				if err := vm.push(vm.currentFrame().fn); err != nil {
+					return err
+				}
+			}
 		case code.OpCall:
 			{
 				nOfParameters := int(byte(ins[ip+1]))
-				fn, ok := vm.stack[vm.sp-1-nOfParameters].(*object.CompiledFunction)
+				fnPos := vm.sp - 1 - nOfParameters
+				fn, ok := vm.stack[fnPos].(*object.Closure)
 				vm.currentFrame().ip++
 				if !ok {
-					return fmt.Errorf("can't call expression, expected a function, got=%s", vm.stack[vm.sp-1-nOfParameters].Type())
+					builtinFn, ok2 := vm.stack[fnPos].(*object.Builtin)
+					if !ok2 {
+						if vm.stack[fnPos] == nil {
+							return fmt.Errorf("unexpected call of a function")
+						}
+						return fmt.Errorf("can't call type=%s, expected a function", vm.stack[fnPos].Type())
+					}
+					res := builtinFn.Fn(vm.stack[vm.sp-nOfParameters : vm.sp]...)
+					var objectToPush object.Object = res
+					if res == nil {
+						objectToPush = Null
+					}
+					vm.sp = vm.sp - nOfParameters - 1
+					if err := vm.push(objectToPush); err != nil {
+						return err
+					}
+
+					continue
 				}
-				if fn.NumParameters != nOfParameters {
-					return fmt.Errorf("wrong number of parameters, expected=%d, got=%d", fn.NumParameters, nOfParameters)
+				if fn.Fn.NumParameters != nOfParameters {
+					return fmt.Errorf("wrong number of parameters, expected=%d, got=%d", fn.Fn.NumParameters, nOfParameters)
 				}
 
 				// Set the basePointer to where the function next pointer is located
@@ -249,7 +307,7 @@ func (vm *VM) Run() error {
 				frame := NewFrame(fn, vm.sp-nOfParameters)
 				vm.pushFrame(frame)
 				// Set the starting point for the function stack [..., fn, vm.sp+fn.NumLocals, stackOfTheFunction]
-				vm.sp = frame.basePointer + fn.NumLocals // NumLocals is = the number of local variables + nArguments
+				vm.sp = frame.basePointer + fn.Fn.NumLocals // NumLocals is = the number of local variables + nArguments
 			}
 		case code.OpNull:
 			{
@@ -482,4 +540,19 @@ func (vm *VM) pushFrame(f *Frame) {
 func (vm *VM) popFrame() *Frame {
 	vm.framesIndex--
 	return vm.frames[vm.framesIndex]
+}
+
+func (vm *VM) pushClosure(indexConstant int, freeVariables int) error {
+	fn, ok := vm.constants[indexConstant].(*object.CompiledFunction)
+	if !ok {
+		return fmt.Errorf("%s is not a function", vm.constants[indexConstant].Type())
+	}
+	closure := &object.Closure{Fn: fn, Free: make([]object.Object, 0, freeVariables)}
+	// Load the free variables into the Function
+	for freeVariablesIdx := 0; freeVariablesIdx < freeVariables; freeVariablesIdx++ {
+		closure.Free = append(closure.Free, vm.stack[freeVariablesIdx+vm.sp-freeVariables])
+	}
+	// Stack cleanup
+	vm.sp = vm.sp - freeVariables
+	return vm.push(closure)
 }

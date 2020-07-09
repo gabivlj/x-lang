@@ -338,6 +338,7 @@ func BenchmarkReadOperands(t *testing.B) {
 
 func BenchmarkInstructionsString(t *testing.B) {
 	instructions := []code.Instructions{
+		// 0
 		// code.Make(code.OpAdd),
 		// code.Make(code.OpConstant, 2),
 		// code.Make(code.OpConstant, 65535),
@@ -347,12 +348,19 @@ func BenchmarkInstructionsString(t *testing.B) {
 		// code.Make(code.OpConstant, 65535),
 		// code.Make(code.OpAdd),
 		// code.Make(code.OpPop),
+		// 1
+		// code.Make(code.OpAdd),
+		// code.Make(code.OpGetLocal, 1),
+		// code.Make(code.OpConstant, 2),
+		// code.Make(code.OpConstant, 65535),
+		// 2
 		code.Make(code.OpAdd),
 		code.Make(code.OpGetLocal, 1),
 		code.Make(code.OpConstant, 2),
 		code.Make(code.OpConstant, 65535),
+		code.Make(code.OpClosure, 65535, 255),
 	}
-
+	// 0
 	// 	expected := `0000 OpAdd
 	// 0001 OpConstant 2
 	// 0004 OpConstant 65535
@@ -362,11 +370,17 @@ func BenchmarkInstructionsString(t *testing.B) {
 	// 0012 OpConstant 65535
 	// 0015 OpAdd
 	// 0016 OpPop`
+	// 1
+	// 	expected := `0000 OpAdd
+	// 0001 OpGetLocal 1
+	// 0003 OpConstant 2
+	// 0006 OpConstant 65535`
+	// 2
 	expected := `0000 OpAdd
 0001 OpGetLocal 1
 0003 OpConstant 2
-0006 OpConstant 65535`
-
+0006 OpConstant 65535
+0009 OpClosure 65535 255`
 	concatted := code.Instructions{}
 	for _, ins := range instructions {
 		concatted = append(concatted, ins...)
@@ -657,32 +671,6 @@ func BenchmarkHashLiterals(t *testing.B) {
 func BenchmarkFunctions(t *testing.B) {
 	tests := []compilerTestCase{
 		{
-			input: `fn() { return 0; }`,
-			expectedConstants: []interface{}{
-				0,
-				[]code.Instructions{
-					code.Make(code.OpConstant, 0),
-					code.Make(code.OpReturnValue),
-				},
-			},
-			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 1),
-				code.Make(code.OpPop),
-			},
-		},
-		{
-			input: `fn() { }`,
-			expectedConstants: []interface{}{
-				[]code.Instructions{
-					code.Make(code.OpReturn),
-				},
-			},
-			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
-				code.Make(code.OpPop),
-			},
-		},
-		{
 			input: `fn() { 1; 2 }`,
 			expectedConstants: []interface{}{
 				1,
@@ -695,7 +683,7 @@ func BenchmarkFunctions(t *testing.B) {
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 2),
+				code.Make(code.OpClosure, 2, 0),
 				code.Make(code.OpPop),
 			},
 		},
@@ -712,7 +700,7 @@ func BenchmarkFunctions(t *testing.B) {
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 2),
+				code.Make(code.OpClosure, 2, 0),
 				code.Make(code.OpPop),
 			},
 		},
@@ -729,7 +717,7 @@ func BenchmarkFunctions(t *testing.B) {
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 2),
+				code.Make(code.OpClosure, 2, 0),
 				code.Make(code.OpPop),
 			},
 		},
@@ -746,7 +734,7 @@ func BenchmarkCompilerScopes(t *testing.B) {
 
 	c.emit(code.OpMul)
 
-	c.enterScope()
+	c.enterScope("")
 	if c.scopeIndex != 1 {
 		t.Errorf("scopeIndex wrong. got=%d, want=%d", c.scopeIndex, 1)
 	}
@@ -802,7 +790,7 @@ func BenchmarkFunctionCalls(t *testing.B) {
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 1), // The compiled function
+				code.Make(code.OpClosure, 1, 0), // The compiled function
 				code.Make(code.OpCall, 0),
 				code.Make(code.OpPop),
 			},
@@ -820,7 +808,7 @@ func BenchmarkFunctionCalls(t *testing.B) {
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 1), // The compiled function
+				code.Make(code.OpClosure, 1, 0), // The compiled function
 				code.Make(code.OpSetGlobal, 0),
 				code.Make(code.OpGetGlobal, 0),
 				code.Make(code.OpCall, 0),
@@ -840,7 +828,7 @@ func BenchmarkFunctionCalls(t *testing.B) {
 				24,
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
+				code.Make(code.OpClosure, 0, 0),
 				code.Make(code.OpSetGlobal, 0),
 				code.Make(code.OpGetGlobal, 0),
 				code.Make(code.OpConstant, 1),
@@ -867,7 +855,7 @@ func BenchmarkFunctionCalls(t *testing.B) {
 				26,
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 0),
+				code.Make(code.OpClosure, 0, 0),
 				code.Make(code.OpSetGlobal, 0),
 				code.Make(code.OpGetGlobal, 0),
 				code.Make(code.OpConstant, 1),
@@ -899,7 +887,7 @@ func BenchmarkLetStatementScopes(t *testing.B) {
 			expectedInstructions: []code.Instructions{
 				code.Make(code.OpConstant, 0),
 				code.Make(code.OpSetGlobal, 0),
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpClosure, 1, 0),
 				code.Make(code.OpPop),
 			},
 		},
@@ -920,13 +908,13 @@ func BenchmarkLetStatementScopes(t *testing.B) {
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 1),
+				code.Make(code.OpClosure, 1, 0),
 				code.Make(code.OpPop),
 			},
 		},
 		{
 			input: `
-					fn() {
+					fn(a) {
 							let a = 55;
 							let b = 77;
 							a + b
@@ -937,17 +925,17 @@ func BenchmarkLetStatementScopes(t *testing.B) {
 				77,
 				[]code.Instructions{
 					code.Make(code.OpConstant, 0),
-					code.Make(code.OpSetLocal, 0),
-					code.Make(code.OpConstant, 1),
 					code.Make(code.OpSetLocal, 1),
-					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpConstant, 1),
+					code.Make(code.OpSetLocal, 2),
 					code.Make(code.OpGetLocal, 1),
+					code.Make(code.OpGetLocal, 2),
 					code.Make(code.OpAdd),
 					code.Make(code.OpReturnValue),
 				},
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpConstant, 2),
+				code.Make(code.OpClosure, 2, 0),
 				code.Make(code.OpPop),
 			},
 		},
@@ -965,7 +953,7 @@ func BenchmarkCompilerScopesOther(t *testing.B) {
 
 	compiler.emit(code.OpMul)
 
-	compiler.enterScope()
+	compiler.enterScope("")
 	if compiler.scopeIndex != 1 {
 		t.Errorf("scopeIndex wrong. got=%d, want=%d", compiler.scopeIndex, 1)
 	}
@@ -1018,4 +1006,270 @@ func BenchmarkCompilerScopesOther(t *testing.B) {
 		t.Errorf("previousInstruction.Opcode wrong. got=%d, want=%d",
 			previous.Opcode, code.OpMul)
 	}
+}
+
+func BenchmarkBuiltins(t *testing.B) {
+	tests := []compilerTestCase{
+		{
+			input: `
+					len([]);
+					push([], 1);
+					`,
+			expectedConstants: []interface{}{1},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpGetBuiltin, 0),
+				code.Make(code.OpArray, 0),
+				code.Make(code.OpCall, 1),
+				code.Make(code.OpPop),
+				code.Make(code.OpGetBuiltin, 1),
+				code.Make(code.OpArray, 0),
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpCall, 2),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `fn() { len([]) }`,
+			expectedConstants: []interface{}{
+				[]code.Instructions{
+					code.Make(code.OpGetBuiltin, 0),
+					code.Make(code.OpArray, 0),
+					code.Make(code.OpCall, 1),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpClosure, 0, 0),
+				code.Make(code.OpPop),
+			},
+		},
+	}
+
+	runCompilerTests(t, tests)
+}
+
+func BenchmarkDefineResolveBuiltins(t *testing.B) {
+	global := NewSymbolTable()
+	firstLocal := NewEnclosedSymbolTable(global)
+	secondLocal := NewEnclosedSymbolTable(firstLocal)
+
+	expected := []Symbol{
+		Symbol{Name: "a", Scope: BuiltinScope, Index: 0},
+		Symbol{Name: "c", Scope: BuiltinScope, Index: 1},
+		Symbol{Name: "e", Scope: BuiltinScope, Index: 2},
+		Symbol{Name: "f", Scope: BuiltinScope, Index: 3},
+	}
+
+	for i, v := range expected {
+		global.DefineBuiltin(i, v.Name)
+	}
+
+	for _, table := range []*SymbolTable{global, firstLocal, secondLocal} {
+		for _, sym := range expected {
+			result, ok := table.Resolve(sym.Name)
+			if !ok {
+				t.Errorf("name %s not resolvable", sym.Name)
+				continue
+			}
+			if result != sym {
+				t.Errorf("expected %s to resolve to %+v, got=%+v",
+					sym.Name, sym, result)
+			}
+		}
+	}
+}
+
+func BenchmarkClosures(t *testing.B) {
+	tests := []compilerTestCase{
+		{
+			input: `
+					fn(a) {
+							fn(b) {
+									a + b
+							}
+					}
+					`,
+			expectedConstants: []interface{}{
+				[]code.Instructions{
+					code.Make(code.OpGetFree, 0),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpAdd),
+					code.Make(code.OpReturnValue),
+				},
+				[]code.Instructions{
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpClosure, 0, 1),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpClosure, 1, 0),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `
+			fn(a) {
+					fn(b) {
+							fn(c) {
+									a + b + c
+							}
+					}
+			};
+			`,
+			expectedConstants: []interface{}{
+				[]code.Instructions{
+					code.Make(code.OpGetFree, 0),
+					code.Make(code.OpGetFree, 1),
+					code.Make(code.OpAdd),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpAdd),
+					code.Make(code.OpReturnValue),
+				},
+				[]code.Instructions{
+					code.Make(code.OpGetFree, 0),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpClosure, 0, 2),
+					code.Make(code.OpReturnValue),
+				},
+				[]code.Instructions{
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpClosure, 1, 1),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpClosure, 2, 0),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `
+			let global = 55;
+
+			fn() {
+					let a = 66;
+
+					fn() {
+							let b = 77;
+
+							fn() {
+									let c = 88;
+
+									global + a + b + c;
+							}
+					}
+			}
+			`,
+			expectedConstants: []interface{}{
+				55,
+				66,
+				77,
+				88,
+				[]code.Instructions{
+					code.Make(code.OpConstant, 3),
+					code.Make(code.OpSetLocal, 0),
+					code.Make(code.OpGetGlobal, 0),
+					code.Make(code.OpGetFree, 0),
+					code.Make(code.OpAdd),
+					code.Make(code.OpGetFree, 1),
+					code.Make(code.OpAdd),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpAdd),
+					code.Make(code.OpReturnValue),
+				},
+				[]code.Instructions{
+					code.Make(code.OpConstant, 2),
+					code.Make(code.OpSetLocal, 0),
+					code.Make(code.OpGetFree, 0),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpClosure, 4, 2),
+					code.Make(code.OpReturnValue),
+				},
+				[]code.Instructions{
+					code.Make(code.OpConstant, 1),
+					code.Make(code.OpSetLocal, 0),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpClosure, 5, 1),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpClosure, 6, 0),
+				code.Make(code.OpPop),
+			},
+		},
+	}
+
+	runCompilerTests(t, tests)
+}
+
+func BenchmarkRecursiveFunctions(t *testing.B) {
+	tests := []compilerTestCase{
+		{
+			input: `
+					let countDown = fn(x) { countDown(x - 1); };
+					countDown(1);
+					`,
+			expectedConstants: []interface{}{
+				1,
+				[]code.Instructions{
+					code.Make(code.OpCurrentClosure),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpSub),
+					code.Make(code.OpCall, 1),
+					code.Make(code.OpReturnValue),
+				},
+				1,
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpClosure, 1, 0),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpGetGlobal, 0),
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpCall, 1),
+				code.Make(code.OpPop),
+			},
+		}, {
+			input: `
+			let wrapper = fn() {
+					let countDown = fn(x) { countDown(x - 1); };
+					countDown(1);
+			};
+			wrapper();
+			`,
+			expectedConstants: []interface{}{
+				1,
+				[]code.Instructions{
+					code.Make(code.OpCurrentClosure),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpSub),
+					code.Make(code.OpCall, 1),
+					code.Make(code.OpReturnValue),
+				},
+				1,
+				[]code.Instructions{
+					code.Make(code.OpClosure, 1, 0),
+					code.Make(code.OpSetLocal, 0),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpConstant, 2),
+					code.Make(code.OpCall, 1),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpClosure, 3, 0),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpGetGlobal, 0),
+				code.Make(code.OpCall, 0),
+				code.Make(code.OpPop),
+			},
+		},
+	}
+
+	runCompilerTests(t, tests)
 }

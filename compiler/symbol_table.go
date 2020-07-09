@@ -8,6 +8,10 @@ const (
 	LocalScope SymbolScope = "LOCAL"
 	// GlobalScope .
 	GlobalScope SymbolScope = "GLOBAL"
+	// BuiltinScope .
+	BuiltinScope SymbolScope = "BUILTIN"
+	// FreeScope is the scope for variables that are catched by a closure
+	FreeScope SymbolScope = "FREE"
 )
 
 // Symbol .
@@ -19,7 +23,8 @@ type Symbol struct {
 
 // SymbolTable stores all the symbols
 type SymbolTable struct {
-	Outer *SymbolTable
+	Outer       *SymbolTable
+	FreeSymbols []Symbol
 
 	store          map[string]Symbol
 	numDefinitions int
@@ -27,22 +32,23 @@ type SymbolTable struct {
 
 // NewSymbolTable returns a new table
 func NewSymbolTable() *SymbolTable {
-	return &SymbolTable{store: make(map[string]Symbol)}
+	free := []Symbol{}
+	return &SymbolTable{store: make(map[string]Symbol), FreeSymbols: free}
 }
-
-// // Define returns the new symbol
-// func (s *SymbolTable) Define(name string) Symbol {
-// 	symbol := Symbol{Name: name, Index: s.numDefinitions, Scope: GlobalScope}
-// 	s.numDefinitions++
-// 	s.store[symbol.Name] = symbol
-// 	return symbol
-// }
 
 // Resolve returns a symbol
 func (s *SymbolTable) Resolve(name string) (Symbol, bool) {
 	symbol, ok := s.store[name]
 	if !ok && s.Outer != nil {
-		return s.Outer.Resolve(name)
+		sym, ok := s.Outer.Resolve(name)
+		if !ok {
+			return sym, ok
+		}
+		if sym.Scope == GlobalScope || sym.Scope == BuiltinScope {
+			return sym, ok
+		}
+
+		return s.defineFree(sym), ok
 	}
 	return symbol, ok
 }
@@ -64,5 +70,19 @@ func (s *SymbolTable) Define(name string) Symbol {
 	}
 	s.store[name] = symbol
 	s.numDefinitions++
+	return symbol
+}
+
+// DefineBuiltin defines a builtin function
+func (s *SymbolTable) DefineBuiltin(index int, name string) {
+	symbol := Symbol{Name: name, Index: index, Scope: BuiltinScope}
+	s.store[name] = symbol
+}
+
+func (s *SymbolTable) defineFree(original Symbol) Symbol {
+	s.FreeSymbols = append(s.FreeSymbols, original)
+	symbol := Symbol{Name: original.Name, Index: len(s.FreeSymbols) - 1}
+	symbol.Scope = FreeScope
+	s.store[original.Name] = symbol
 	return symbol
 }
