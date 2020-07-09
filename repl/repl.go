@@ -57,16 +57,41 @@ func Start(in io.Reader, out io.Writer) {
 	}
 }
 
+// let reduce = fn(arr, initial, f) {
+// 	let iter = fn(arr, result) {
+// 		 if (len(arr) == 0) {
+// 				return result
+// 		 }
+// 		 iter(shift(arr), f(result, first(arr)));
+// 	 }
+// 	iter(arr, initial)
+// }
 const standardLibrary = `
-let reduce = fn(arr, initial, f) {
-	 let iter = fn(arr, result) {
-		  if (len(arr) == 0) {
-				 return result 
+
+
+let map = fn(arr, f) {
+  let iter = fn(arr, accumulated) {
+    if (len(arr) == 0) {
+      accumulated
+    } else {
+      iter(shift(arr), push(accumulated, f(first(arr))));
+    }
+  };
+
+  iter(arr, []);
+};
+
+let wrapper = fn() {
+	let countDown = fn(x) {
+			if (x == 0) {
+					return 1;
+			} else {
+					countDown(x - 1);
 			}
-			iter(shift(arr), f(result, first(arr)));
-		}
-	 iter(arr, initial) 
-}
+	};
+	countDown(1);
+};
+wrapper();
 `
 
 // AddToStandardFunctions adds util functions into the language

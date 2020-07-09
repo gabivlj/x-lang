@@ -1,9 +1,9 @@
 package code
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
-	"strings"
 )
 
 // Instructions is the list of instructions that are passed to the VM
@@ -65,6 +65,14 @@ const (
 	OpGetLocal
 	// OpSetLocal tells the VM to set a local variable
 	OpSetLocal
+	// OpGetBuiltin tells the VM to get a builtin variable/function in the position X
+	OpGetBuiltin
+	// OpClosure tells the specified X constant function to convert it into a closure and Y specifies how many free varibles are on the stack and need to be transfered into the closure.
+	OpClosure
+	// OpGetFree tells the VM to retrieve a free variable
+	OpGetFree
+	// OpCurrentClosure tells the VM to push to the stack the current closure
+	OpCurrentClosure
 )
 
 // Definition is the definition of a operand
@@ -103,7 +111,13 @@ var definitions = map[Opcode]*Definition{
 	// The direction in the stack
 	OpGetLocal: {"OpGetLocal", []int{1}},
 	// Puts the current top element of the stack to the specified direction in the stack (initial:vm.sp + dir)
-	OpSetLocal: {"OpSetLocal", []int{1}},
+	OpSetLocal:   {"OpSetLocal", []int{1}},
+	OpGetBuiltin: {"OpGetBuiltin", []int{1}},
+	// OpClosure before it's emmited must have all the free variables loaded into the stack
+	// with OpConstants/OpGet...
+	OpClosure:        {"OpClosure", []int{2, 1}},
+	OpGetFree:        {"OpGetFree", []int{1}},
+	OpCurrentClosure: {"OpCurrentClosure", []int{}},
 }
 
 // Lookup an operand in the definition table
@@ -126,7 +140,6 @@ func Make(op Opcode, operands ...int) []byte {
 	for _, w := range def.OperandWidths {
 		instructionLen += w
 	}
-
 	instruction := make([]byte, instructionLen)
 	instruction[0] = byte(op)
 	// offset starts with 1 because the operand!
@@ -147,43 +160,89 @@ func Make(op Opcode, operands ...int) []byte {
 }
 
 func (ins Instructions) String() string {
-	if len(ins) == 0 {
-		return ""
-	}
-	def, err := Lookup(ins[0])
-	if err != nil {
-		return ""
-	}
-	s := strings.Builder{}
-	s.Grow(len(ins) * 10)
-	offset := 0
-	for i := 1; i < len(ins); i++ {
-		s.WriteString(fmt.Sprintf("%04d ", i-1))
-		s.WriteString(def.Name)
-		if len(def.OperandWidths) > 0 {
-			str := opToString(i, def.OperandWidths[offset]+i, def.OperandWidths[offset], ins)
-			s.WriteString(str)
-			offset++
+	var out bytes.Buffer
+
+	i := 0
+	for i < len(ins) {
+		def, err := Lookup(ins[i])
+		if err != nil {
+			fmt.Fprintf(&out, "ERROR: %s\n", err)
+			continue
 		}
-		if offset >= len(def.OperandWidths) {
-			// Go to next operand (Taking into mind that "i" is next to the current operator byte)
-			if len(def.OperandWidths) > 0 {
-				i = def.OperandWidths[offset-1] + i
-			}
-			if i >= len(ins) {
-				break
-			}
-			offset = 0
-			s.WriteByte('\n')
-			def, _ = Lookup(ins[i])
-			if len(def.OperandWidths) == 0 && i == len(ins)-1 {
-				s.WriteString(fmt.Sprintf("%04d ", i))
-				s.WriteString(def.Name)
-			}
-		}
+
+		operands, read := ReadOperands(def, ins[i+1:])
+
+		fmt.Fprintf(&out, "%04d %s\n", i, ins.fmtInstruction(def, operands))
+
+		i += 1 + read
 	}
-	return s.String()
+
+	return out.String()
 }
+
+func (ins Instructions) fmtInstruction(def *Definition, operands []int) string {
+	operandCount := len(def.OperandWidths)
+
+	if len(operands) != operandCount {
+		return fmt.Sprintf("ERROR: operand len %d does not match defined %d in %s %v\n",
+			len(operands), operandCount, def.Name, operands)
+	}
+
+	switch operandCount {
+	case 0:
+		return def.Name
+	case 1:
+		return fmt.Sprintf("%s %d", def.Name, operands[0])
+	case 2:
+		return fmt.Sprintf("%s %d %d", def.Name, operands[0], operands[1])
+	}
+
+	return fmt.Sprintf("ERROR: unhandled operandCount for %s\n", def.Name)
+}
+
+// func (ins Instructions) String() string {
+// 	if len(ins) == 0 {
+// 		return ""
+// 	}
+// 	def, err := Lookup(ins[0])
+// 	if err != nil {
+// 		return ""
+// 	}
+// 	s := strings.Builder{}
+// 	s.Grow(len(ins) * 10)
+// 	offset := 0
+// 	for i := 1; i < len(ins); i++ {
+// 		if offset == 0 {
+// 			s.WriteString(fmt.Sprintf("%04d ", i-1))
+// 			s.WriteString(def.Name)
+// 		}
+// 		if len(def.OperandWidths) > 0 {
+// 			str := opToString(i, def.OperandWidths[offset]+i, def.OperandWidths[offset], ins)
+// 			s.WriteString(str)
+// 			offset++
+// 		}
+// 		if offset >= len(def.OperandWidths) {
+// 			// Go to next operand (Taking into mind that "i" is next to the current operator byte)
+// 			if len(def.OperandWidths) > 0 {
+// 				i = def.OperandWidths[offset-1] + i
+// 			}
+// 			if i >= len(ins) {
+// 				break
+// 			}
+// 			offset = 0
+// 			s.WriteByte('\n')
+// 			def, _ = Lookup(ins[i])
+// 			if def == nil {
+// 				continue
+// 			}
+// 			if len(def.OperandWidths) == 0 && i == len(ins)-1 {
+// 				s.WriteString(fmt.Sprintf("%04d ", i))
+// 				s.WriteString(def.Name)
+// 			}
+// 		}
+// 	}
+// 	return strings.TrimSpace(s.String())
+// }
 
 func opToString(start, end, width int, ins Instructions) string {
 	switch width {
@@ -211,6 +270,8 @@ func ReadOperands(def *Definition, ins Instructions) ([]int, int) {
 		switch w {
 		case 2:
 			operands = append(operands, int(binary.BigEndian.Uint16(ins[offset:])))
+		case 1:
+			operands = append(operands, int(ins[offset]))
 		}
 		offset += w
 	}

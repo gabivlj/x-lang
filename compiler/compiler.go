@@ -19,6 +19,7 @@ type CompilationScope struct {
 	instructions        code.Instructions
 	lastInstruction     EmittedInstruction
 	previousInstruction EmittedInstruction
+	name                string
 }
 
 // Compiler contains the instructions and constants
@@ -37,11 +38,15 @@ func New() *Compiler {
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
 	}
+	table := NewSymbolTable()
+	for i, fn := range object.GetBuiltins() {
+		table.DefineBuiltin(i, fn.Name)
+	}
 	return &Compiler{
 		constants:   []object.Object{},
 		scopes:      []CompilationScope{mainScope},
 		scopeIndex:  0,
-		symbolTable: NewSymbolTable(),
+		symbolTable: table,
 	}
 }
 
@@ -53,11 +58,12 @@ func NewWithState(s *SymbolTable, constants []object.Object) *Compiler {
 	return compiler
 }
 
-func (c *Compiler) enterScope() {
+func (c *Compiler) enterScope(name string) {
 	scope := CompilationScope{
 		instructions:        code.Instructions{},
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
+		name:                name,
 	}
 	c.scopes = append(c.scopes, scope)
 	c.scopeIndex++
@@ -176,17 +182,22 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.Identifier:
 		{
 			symbol, ok := c.symbolTable.Resolve(node.Value)
+			if node.Value == c.currentScope().name && symbol.Scope == FreeScope {
+				c.emit(code.OpCurrentClosure)
+				return nil
+			}
 			if !ok {
-				return fmt.Errorf("undefined variable=%s", node.Value)
+				return fmt.Errorf("undefined variable=%s que", node.Value)
 			}
 			c.emit(c.getCodeScope(&symbol), symbol.Index)
 		}
 	case *ast.LetStatement:
 		{
+			symbol := c.symbolTable.Define(node.Name.Value)
 			if err := c.Compile(node.Value); err != nil {
 				return err
 			}
-			symbol := c.symbolTable.Define(node.Name.Value)
+
 			c.emit(c.setCodeScope(&symbol), symbol.Index)
 		}
 	case *ast.IfExpression:
@@ -202,16 +213,28 @@ func (c *Compiler) Compile(node ast.Node) error {
 			}
 			scope := c.currentScope()
 			if scope.lastInstruction.Opcode == code.OpPop {
-				scope.instructions = scope.instructions[:scope.lastInstruction.Position]
-				scope.lastInstruction = scope.previousInstruction
+				last := c.scopes[c.scopeIndex].lastInstruction
+				previous := c.scopes[c.scopeIndex].previousInstruction
+
+				old := c.currentInstructions()
+				new := old[:last.Position]
+
+				c.scopes[c.scopeIndex].instructions = new
+				c.scopes[c.scopeIndex].lastInstruction = previous
 			}
 			posOfJump := c.emit(code.OpJump, 9999)
 			c.changeOperand(pos, len(scope.instructions))
 			if node.Alternative != nil {
 				c.Compile(node.Alternative)
 				if scope.lastInstruction.Opcode == code.OpPop {
-					scope.instructions = scope.instructions[:scope.lastInstruction.Position]
-					scope.lastInstruction = scope.previousInstruction
+					last := c.scopes[c.scopeIndex].lastInstruction
+					previous := c.scopes[c.scopeIndex].previousInstruction
+
+					old := c.currentInstructions()
+					new := old[:last.Position]
+
+					c.scopes[c.scopeIndex].instructions = new
+					c.scopes[c.scopeIndex].lastInstruction = previous
 				}
 				c.changeOperand(posOfJump, len(scope.instructions))
 				return nil
@@ -329,7 +352,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 
 	case *ast.FunctionLiteral:
 		{
-			c.enterScope()
+			c.enterScope(node.Name)
 			// All the parameters will be already in the stack so we won't need to worry about
 			// it. [..., FUNCTION_LITERAL, ...argumentsOnStack, ...localVariables]
 			// OpCodes: [OpConstants(FUNCTION), ...OpConstants | OpGet..., OpCall]
@@ -347,9 +370,13 @@ func (c *Compiler) Compile(node ast.Node) error {
 				c.emit(code.OpReturn)
 			}
 			numLocals := c.symbolTable.numDefinitions
+			freeSymbols := c.symbolTable.FreeSymbols
 			ins := c.leaveScope()
+			for _, s := range freeSymbols {
+				c.emit(c.getCodeScope(&s), s.Index)
+			}
 			compiledFn := &object.CompiledFunction{Instructions: ins, NumLocals: numLocals, NumParameters: len(node.Parameters)}
-			c.emit(code.OpConstant, c.addConstant(compiledFn))
+			c.emit(code.OpClosure, c.addConstant(compiledFn), len(freeSymbols))
 		}
 	}
 	return nil
@@ -401,6 +428,10 @@ func (c *Compiler) getCodeScope(symbol *Symbol) code.Opcode {
 	codeToUse := code.OpGetGlobal
 	if symbol.Scope == LocalScope {
 		codeToUse = code.OpGetLocal
+	} else if symbol.Scope == BuiltinScope {
+		codeToUse = code.OpGetBuiltin
+	} else if symbol.Scope == FreeScope {
+		codeToUse = code.OpGetFree
 	}
 	return codeToUse
 }

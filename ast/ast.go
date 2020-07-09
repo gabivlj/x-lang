@@ -359,6 +359,7 @@ type FunctionLiteral struct {
 	Token      token.Token
 	Parameters []*Identifier
 	Body       *BlockStatement
+	Name       string
 }
 
 // SetLine .
@@ -379,6 +380,9 @@ func (fl *FunctionLiteral) TokenLiteral() string { return fl.Token.Literal }
 func (fl *FunctionLiteral) String() string {
 	out := strings.Builder{}
 	params := []string{}
+	if fl.Name != "" {
+		out.WriteString(fmt.Sprintf("<%s>", fl.Name))
+	}
 	for _, p := range fl.Parameters {
 		params = append(params, p.String())
 	}
